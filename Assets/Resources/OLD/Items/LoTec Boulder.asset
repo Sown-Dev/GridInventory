@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9c93b075da847a7bccb8c6e215bb59a, type: 3}
+  m_Name: LoTec Boulder
+  m_EditorClassIdentifier: 
+  Icon: {fileID: -6436376011385607893, guid: a0138415642053542a1cc61ec2f574ac, type: 3}
+  Width: 2
+  Height: 2
+  maxStack: 1

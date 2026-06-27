@@ -1,0 +1,132 @@
+using System;
+using System.Collections.Generic;
+using Systems.Inventory;
+using UnityEditor.Experimental.GraphView;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using Grid = Systems.Inventory.Grid;
+
+public class GridUI : MonoBehaviour, IPointerMoveHandler, IPointerExitHandler
+{
+    [SerializeField] private GameObject itemUIPrefab;
+    [SerializeField] private RectTransform rt;
+    [SerializeField] private Image highlightImage;
+
+    public Grid myGrid;
+
+    public void Init(Grid grid)
+    {
+        myGrid = grid;
+        rt.sizeDelta = new Vector2(myGrid.width * ItemRegistry.GridSize, myGrid.height * ItemRegistry.GridSize);
+        Populate();
+        ClearHighlight();
+    }
+
+    public void Populate()
+    {
+        // Clear existing UI items
+        foreach (Transform child in transform)
+        {
+            if (child.GetComponent<ItemStackUI>() != null)
+                Destroy(child.gameObject);
+        }
+
+        // Create UI for each item in the list
+        foreach (var itemStack in myGrid.items)
+        {
+            ItemStackUI itemUI = Instantiate(itemUIPrefab, transform).GetComponent<ItemStackUI>();
+            itemUI.GetComponent<RectTransform>().anchoredPosition = new Vector2(
+                itemStack.position.x * ItemRegistry.GridSize,
+                -itemStack.position.y * ItemRegistry.GridSize);
+            itemUI.Init(itemStack, this);
+        }
+    }
+
+    private Vector3 lastDropPos;
+
+    public void OnDrawGizmos()
+    {
+        Gizmos.DrawWireSphere(rt.pivot, 0.3f);
+        Gizmos.DrawLine(rt.pivot, lastDropPos);
+    }
+
+    public bool OnDrop(PointerEventData eventData)
+    {
+        ItemStackUI itemUI = eventData.pointerDrag.GetComponent<ItemStackUI>();
+        if (itemUI != null)
+        {
+            int x = currentHighlightPos.Item1;
+            int y = currentHighlightPos.Item2;
+            bool place = myGrid.CanPlaceItem(itemUI.myStack, x, y);
+
+            Debug.Log("Tried to place at: " + x + " , " + y + " Result: " + place);
+
+            if (place)
+            {
+                myGrid.PlaceItem(itemUI.myStack, x, y);
+                Populate();
+                ClearHighlight();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool isHovering = false;
+    private ItemStackUI currentDraggedItem = null;
+
+    public void ClearHighlight()
+    {
+        highlightImage.rectTransform.sizeDelta = new Vector2(0, 0);
+    }
+
+    (int, int) currentHighlightPos = (-1, -1);
+
+    public void OnPointerMove(PointerEventData eventData)
+    {
+        if (eventData.pointerDrag != null)
+        {
+            ItemStackUI itemUI = eventData.pointerDrag.GetComponent<ItemStackUI>();
+            if (itemUI != null)
+            {
+                isHovering = true;
+                currentDraggedItem = itemUI;
+
+                // Calculate the top-left corner position of the GridUI
+                Vector3 myPos = rt.position;
+                // Offset by the pivot to get to top-left corner
+                myPos.x -= rt.pivot.x * rt.rect.width;
+                myPos.y -= (rt.pivot.y - 1) * rt.rect.height; // (pivot.y - 1) because top is 1, not 0
+
+                Vector3 dragPos = eventData.pointerDrag.transform.position;
+                lastDropPos = dragPos;
+
+                Vector3 diff = dragPos - myPos;
+
+                // Convert to grid coordinates
+                int x = Mathf.FloorToInt(diff.x / ItemRegistry.GridSize);
+                int y = Mathf.FloorToInt(-diff.y / ItemRegistry.GridSize);
+
+                highlightImage.rectTransform.anchoredPosition = new Vector2((x) * ItemRegistry.GridSize, (y) * -ItemRegistry.GridSize);
+
+                currentHighlightPos = (x, y);
+                
+                // Show highlight
+                highlightImage.rectTransform.sizeDelta = new Vector2(
+                    itemUI.myStack.Width() * ItemRegistry.GridSize,
+                    itemUI.myStack.Height() * ItemRegistry.GridSize);
+
+                bool canPlace = myGrid.CanPlaceItem(itemUI.myStack, x, y);
+
+                highlightImage.color = canPlace ? (Input.GetKey(KeyCode.LeftAlt) ? new Color(0.8f, 0.8f, 0, 0.1f) : new Color(0, 1, 0, 0.1f)) : new Color(1, 0, 0, 0.1f);
+            }
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        ClearHighlight();
+    }
+}
