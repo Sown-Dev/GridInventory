@@ -8,9 +8,12 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     public RectTransform RectTransform { get; private set; }
 
     private ItemData item;
+    private IItemContainerUI sourceContainer;
+    private IItemContainerUI currentDropTarget;
     private GridInventoryUI gridUI;
     private RectTransform canvasRect;
-    private Vector2 dragOffset;
+    private Vector3 dragWorldOffset;
+    private CanvasGroup canvasGroup;
     private bool isDragging;
     private int origX, origY;
     private int origAmount;
@@ -23,15 +26,25 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     void Awake()
     {
         RectTransform = GetComponent<RectTransform>();
+        canvasGroup = GetComponent<CanvasGroup>();
+
+        if (canvasGroup == null)
+        {
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        }
     }
 
-    public void Init(ItemData item, GridInventoryUI gridUI)
+    public void Init(ItemData item, IItemContainerUI container, GridInventoryUI gridUI = null)
     {
         this.item   = item;
-        this.gridUI = gridUI;
+        this.sourceContainer = container;
+        this.gridUI = gridUI ?? container as GridInventoryUI;
 
-        ItemDefinition def = ItemRegistry.instance.ByID(item.itemID);
-        if (def != null && def.icon != null)
+        ItemDefinition def = Registry.instance != null
+            ? Registry.instance.ByID(item.itemID)
+            : null;
+
+        if (def != null && def.icon != null && itemIcon != null)
         {
             Image img = itemIcon;
             img.sprite  = def.icon;
@@ -57,9 +70,16 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
     void UpdateVisuals()
     {
-        int w = item.rotated ? item.sizeY : item.sizeX;
-        int h = item.rotated ? item.sizeX : item.sizeY;
-        RectTransform.sizeDelta = new Vector2(w * gridUI.cellSize, h * gridUI.cellSize);
+        if (gridUI != null)
+        {
+            int w = item.rotated ? item.sizeY : item.sizeX;
+            int h = item.rotated ? item.sizeX : item.sizeY;
+            RectTransform.sizeDelta = new Vector2(w * gridUI.cellSize, h * gridUI.cellSize);
+        }
+        else if (itemIcon != null)
+        {
+            RectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
+        }
 
         if (itemIcon != null)
         {
@@ -81,21 +101,33 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         origAmount  = item.amount;
         origRotated = item.rotated;
 
-        gridUI.inventory.RemoveItem(item);
+        sourceContainer = sourceContainer ?? ItemContainerUIUtility.ResolveContainerInParents(transform.parent);
+        sourceContainer?.TryRemoveItem(item);
         isDragging = true;
+        currentDropTarget = null;
 
-        canvasRect = gridUI.rootCanvas.transform as RectTransform;
-        RectTransform.SetParent(gridUI.rootCanvas.transform, true);
+        canvasGroup.blocksRaycasts = false;
+
+        Canvas rootCanvas = GetComponentInParent<Canvas>(true);
+        canvasRect = rootCanvas != null ? rootCanvas.transform as RectTransform : null;
+
+        Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? rootCanvas.worldCamera
+            : null;
+
+        if (canvasRect != null && RectTransformUtility.ScreenPointToWorldPointInRectangle(
+            canvasRect, eventData.position, cam, out Vector3 pointerWorld))
+        {
+            dragWorldOffset = RectTransform.position - pointerWorld;
+        }
+
+        if (rootCanvas != null)
+        {
+            RectTransform.SetParent(rootCanvas.transform, true);
+        }
+
         RectTransform.SetAsLastSibling();
 
-        Camera cam = gridUI.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
-            ? null
-            : gridUI.rootCanvas.worldCamera;
-
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, eventData.position, cam, out Vector2 pointerLocal);
-
-        dragOffset = RectTransform.anchoredPosition - pointerLocal;
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -105,21 +137,16 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             return;
         }
 
-        Camera cam = gridUI.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
-            ? null
-            : gridUI.rootCanvas.worldCamera;
+        Canvas rootCanvas = canvasRect.GetComponent<Canvas>();
+        Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? rootCanvas.worldCamera
+            : null;
 
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, eventData.position, cam, out Vector2 pointerLocal))
+        if (RectTransformUtility.ScreenPointToWorldPointInRectangle(
+            canvasRect, eventData.position, cam, out Vector3 worldPoint))
         {
-            return;
+            RectTransform.position = worldPoint + dragWorldOffset;
         }
-
-        RectTransform.anchoredPosition = pointerLocal + dragOffset;
-
-        Vector2Int cell = gridUI.ScreenToCell(eventData.position);
-        item.posX = cell.x;
-        item.posY = cell.y;
 
         UpdateDragPreview();
     }
@@ -127,87 +154,58 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     public void OnEndDrag(PointerEventData eventData)
     {
         isDragging = false;
-        gridUI.ClearHighlights();
+        canvasGroup.blocksRaycasts = true;
 
-        Vector2Int cell = gridUI.ScreenToCell(eventData.position);
-        item.posX = cell.x;
-        item.posY = cell.y;
+        currentDropTarget?.ClearDropPreview();
 
-        bool splitOnDrop = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && origAmount > 1;
-        bool dropped = TryDrop(cell, splitOnDrop);
+        bool dropped = currentDropTarget != null && currentDropTarget.TryPlaceItem(item, eventData.position);
 
-        if (!dropped)
+        if (!dropped && sourceContainer != null)
         {
             item.posX    = origX;
             item.posY    = origY;
             item.amount  = origAmount;
             item.rotated = origRotated;
-            gridUI.inventory.PlaceItem(item);
+            sourceContainer.TryRestoreItem(item);
         }
 
-        gridUI.RebuildItemUIs();
+        if (sourceContainer != null)
+        {
+            sourceContainer.RefreshView();
+        }
+
+        if (currentDropTarget != null && currentDropTarget != sourceContainer)
+        {
+            currentDropTarget.RefreshView();
+        }
+
+        currentDropTarget = null;
+        sourceContainer = null;
     }
 
     private void UpdateDragPreview()
     {
-        bool canPlace = gridUI.inventory.CanPlace(item);
-        bool canStack = gridUI.inventory.CanStackAt(item, item.posX, item.posY);
-        bool splitOnDrop = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && origAmount > 1;
-
-        GridInventoryUI.HighlightState state = GridInventoryUI.HighlightState.Invalid;
-        if (canPlace || canStack)
+        if (sourceContainer == null)
         {
-            state = (canStack || splitOnDrop)
-                ? GridInventoryUI.HighlightState.Special
-                : GridInventoryUI.HighlightState.Valid;
+            currentDropTarget?.ClearDropPreview();
+            currentDropTarget = null;
+            return;
         }
 
-        gridUI.UpdateHighlights(item, state);
-    }
+        IItemContainerUI hoveredContainer = ItemContainerUIUtility.ResolveContainerAtScreenPoint(Input.mousePosition);
 
-    private bool TryDrop(Vector2Int dropCell, bool splitOnDrop)
-    {
-        bool keepOriginHalf = splitOnDrop && (dropCell.x != origX || dropCell.y != origY || item.rotated != origRotated);
-
-        int droppedAmount = origAmount;
-        int remainingAtOrigin = 0;
-
-        if (keepOriginHalf)
+        if (hoveredContainer != currentDropTarget)
         {
-            droppedAmount = Mathf.Max(1, origAmount / 2);
-            remainingAtOrigin = origAmount - droppedAmount;
+            currentDropTarget?.ClearDropPreview();
+            currentDropTarget = hoveredContainer;
         }
 
-        item.amount = droppedAmount;
-        item.posX = dropCell.x;
-        item.posY = dropCell.y;
-
-        if (!gridUI.inventory.TryPlaceOrStackAt(item, dropCell.x, dropCell.y))
+        if (currentDropTarget == null)
         {
-            item.amount = origAmount;
-            return false;
+            return;
         }
 
-        if (remainingAtOrigin > 0)
-        {
-            ItemData originHalf = new ItemData
-            {
-                itemID = item.itemID,
-                sizeX = item.sizeX,
-                sizeY = item.sizeY,
-                amount = remainingAtOrigin,
-                value = item.value,
-                posX = origX,
-                posY = origY,
-                rotated = origRotated
-            };
-
-            if (!gridUI.inventory.PlaceItem(originHalf))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        bool valid = currentDropTarget.CanAcceptItem(item, Input.mousePosition);
+        currentDropTarget.UpdateDropPreview(item, Input.mousePosition, valid);
     }
 }

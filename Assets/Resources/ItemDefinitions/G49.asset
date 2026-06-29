@@ -12,9 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8349c619c59c4bb492140b9ed2f2fa8b, type: 3}
   m_Name: G49
   m_EditorClassIdentifier: 
-  itemID: 2
+  itemID: -949757433
+  assetGuid: 9b5856291fe6121459709c1e7d00cbe4
   value: 2000
   sizeX: 2
   sizeY: 2
   maxAmount: 1
   icon: {fileID: 21300000, guid: 3a5423af9961eb44189f7695714e1713, type: 3}
+  componentDefinitions:
+  - {fileID: 11400000, guid: 33a4b30da9c129c4196068bfe158e41f, type: 2}

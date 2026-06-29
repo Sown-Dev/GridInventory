@@ -13,15 +13,37 @@ public class ItemData
     public int amount;
     public int itemID;
     public double value;
-}
 
-public class WeaponData
-{
-    public int MagSize = 30;
-    public int AmmoCount = 0;
-    public Inventory Upgrades;
-
-    public int[] CompatibleAmmo;
+    public ItemComponent[] Components;
     
+    public virtual ItemComponent GetComponent<T>() where T : ItemComponent
+    {
+        if (Components == null) return null;
+
+        foreach (var component in Components)
+        {
+            if (component is T typedComponent)
+            {
+                return typedComponent;
+            }
+        }
+
+        return null;
+    }
+    public virtual bool HasComponent<T>() where T : ItemComponent
+    {
+        if (Components == null) return false;
+
+        foreach (var component in Components)
+        {
+            if (component is T)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
+
 

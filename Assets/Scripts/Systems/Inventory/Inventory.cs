@@ -60,7 +60,7 @@ public class Inventory
 
     public bool TryPlaceWithStacking(ItemData item)
     {
-        ItemDefinition def = ItemRegistry.instance.ByID(item.itemID);
+        ItemDefinition def = Registry.instance.ByID(item.itemID);
         if (def == null)
         {
             return PlaceItem(item);
@@ -108,8 +108,8 @@ public class Inventory
             return false;
         }
 
-        ItemDefinition def = ItemRegistry.instance != null
-            ? ItemRegistry.instance.ByID(movingItem.itemID)
+        ItemDefinition def = Registry.instance != null
+            ? Registry.instance.ByID(movingItem.itemID)
             : null;
 
         if (def == null)
@@ -132,8 +132,8 @@ public class Inventory
         ItemData target = GetItemAt(x, y);
         if (target != null && target != item && target.itemID == item.itemID)
         {
-            ItemDefinition def = ItemRegistry.instance != null
-                ? ItemRegistry.instance.ByID(item.itemID)
+            ItemDefinition def = Registry.instance != null
+                ? Registry.instance.ByID(item.itemID)
                 : null;
 
             if (def != null && target.amount < def.maxAmount)

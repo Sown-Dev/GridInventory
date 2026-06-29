@@ -5,13 +5,18 @@ public class PlayerInventoryUI : MonoBehaviour
     [SerializeField] private Player player;
     [SerializeField] private GridInventoryUI gridInventoryUI;
     [SerializeField] private GameObject inventoryPanel;
+    [SerializeField] private CanvasGroup wholeUiCanvasGroup;
+
+    private Inventory boundInventory;
 
     private void Awake()
     {
-        if (inventoryPanel != null)
+        if (wholeUiCanvasGroup == null)
         {
-            inventoryPanel.SetActive(false);
+            wholeUiCanvasGroup = GetComponentInParent<CanvasGroup>(true);
         }
+
+        SetInventoryVisible(false);
     }
 
     private void Start()
@@ -43,7 +48,13 @@ public class PlayerInventoryUI : MonoBehaviour
 
         if (gridInventoryUI.inventory != player.Inventory)
         {
-            gridInventoryUI.inventory = player.Inventory;
+            gridInventoryUI.BindInventory(player.Inventory);
+        }
+
+        if (boundInventory != player.Inventory)
+        {
+            boundInventory = player.Inventory;
+            gridInventoryUI.RebuildView();
         }
 
         if (inventoryPanel != null && gridInventoryUI.inventory != null)
@@ -51,6 +62,8 @@ public class PlayerInventoryUI : MonoBehaviour
             RectTransform panelRT = inventoryPanel.GetComponent<RectTransform>();
             if (panelRT != null)
             {
+                ApplyPivotFromAnchors(panelRT);
+
                 int gridWidth = gridInventoryUI.inventory.sizeX * gridInventoryUI.cellSize;
                 int gridHeight = gridInventoryUI.inventory.sizeY * gridInventoryUI.cellSize;
                 panelRT.sizeDelta = new Vector2(gridWidth, gridHeight);
@@ -58,13 +71,43 @@ public class PlayerInventoryUI : MonoBehaviour
         }
     }
 
-    private void ToggleInventory()
+    private static void ApplyPivotFromAnchors(RectTransform rectTransform)
     {
-        if (inventoryPanel == null)
+        Vector2 anchorMin = rectTransform.anchorMin;
+        Vector2 anchorMax = rectTransform.anchorMax;
+
+        if (!Mathf.Approximately(anchorMin.x, anchorMax.x))
         {
             return;
         }
 
-        inventoryPanel.SetActive(!inventoryPanel.activeSelf);
+        if (!Mathf.Approximately(anchorMin.y, anchorMax.y))
+        {
+            return;
+        }
+
+        rectTransform.pivot = new Vector2(anchorMin.x, anchorMin.y);
+    }
+
+    private void ToggleInventory()
+    {
+        if (wholeUiCanvasGroup == null)
+        {
+            return;
+        }
+
+        SetInventoryVisible(!wholeUiCanvasGroup.interactable);
+    }
+
+    private void SetInventoryVisible(bool visible)
+    {
+        if (wholeUiCanvasGroup == null)
+        {
+            return;
+        }
+
+        wholeUiCanvasGroup.alpha = visible ? 1f : 0f;
+        wholeUiCanvasGroup.interactable = visible;
+        wholeUiCanvasGroup.blocksRaycasts = visible;
     }
 }

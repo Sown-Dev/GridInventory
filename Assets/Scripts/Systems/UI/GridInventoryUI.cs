@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class GridInventoryUI : MonoBehaviour
+public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 {
     public enum HighlightState
     {
@@ -26,11 +26,24 @@ public class GridInventoryUI : MonoBehaviour
     private Image[] cellHighlights;
     private Dictionary<ItemData, ItemUI> itemUIMap = new Dictionary<ItemData, ItemUI>();
 
+    public RectTransform ContainerRect => gridPanel != null ? gridPanel : transform as RectTransform;
+
+    private void Awake()
+    {
+        if (gridPanel == null)
+        {
+            gridPanel = transform as RectTransform;
+        }
+
+        if (rootCanvas == null)
+        {
+            rootCanvas = GetComponentInParent<Canvas>(true);
+        }
+    }
+
     void OnEnable()
     {
-        BuildCellHighlights();
-        foreach (ItemData item in inventory.inv)
-            AddItemUI(item);
+        RebuildView();
     }
 
     void OnDisable()
@@ -48,6 +61,11 @@ public class GridInventoryUI : MonoBehaviour
 
     void BuildCellHighlights()
     {
+        if (gridPanel == null || inventory == null)
+        {
+            return;
+        }
+
         cellHighlights = new Image[inventory.sizeX * inventory.sizeY];
 
         gridPanel.sizeDelta = new Vector2(cellSize * inventory.sizeX, cellSize * inventory.sizeY);
@@ -75,9 +93,151 @@ public class GridInventoryUI : MonoBehaviour
         }
     }
 
+    public void BindInventory(Inventory newInventory)
+    {
+        if (inventory == newInventory && cellHighlights != null)
+        {
+            return;
+        }
+
+        inventory = newInventory;
+        RebuildView();
+    }
+
+    public void RebuildView()
+    {
+        if (gridPanel == null || inventory == null || inventory.sizeX <= 0 || inventory.sizeY <= 0)
+        {
+            return;
+        }
+
+        if (cellHighlights != null)
+        {
+            foreach (var highlight in cellHighlights)
+            {
+                if (highlight != null)
+                {
+                    Destroy(highlight.gameObject);
+                }
+            }
+        }
+
+        foreach (var ui in itemUIMap.Values)
+        {
+            if (ui != null)
+            {
+                Destroy(ui.gameObject);
+            }
+        }
+
+        itemUIMap.Clear();
+        BuildCellHighlights();
+
+        foreach (ItemData item in inventory.inv)
+        {
+            AddItemUI(item);
+        }
+    }
+
+    public bool ContainsScreenPoint(Vector2 screenPosition)
+    {
+        if (gridPanel == null)
+        {
+            return false;
+        }
+
+        Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? rootCanvas.worldCamera
+            : null;
+
+        return RectTransformUtility.RectangleContainsScreenPoint(gridPanel, screenPosition, cam);
+    }
+
+    public bool TryRemoveItem(ItemData item)
+    {
+        return inventory != null && inventory.RemoveItem(item);
+    }
+
+    public bool CanAcceptItem(ItemData item, Vector2 screenPosition)
+    {
+        Vector2Int cell = ScreenToCell(screenPosition);
+        int originalX = item.posX;
+        int originalY = item.posY;
+
+        item.posX = cell.x;
+        item.posY = cell.y;
+
+        bool canPlace = inventory != null && (inventory.CanPlace(item) || inventory.CanStackAt(item, cell.x, cell.y));
+
+        item.posX = originalX;
+        item.posY = originalY;
+
+        return canPlace;
+    }
+
+    public void UpdateDropPreview(ItemData item, Vector2 screenPosition, bool valid)
+    {
+        Vector2Int cell = ScreenToCell(screenPosition);
+        int originalX = item.posX;
+        int originalY = item.posY;
+
+        item.posX = cell.x;
+        item.posY = cell.y;
+
+        HighlightState state = valid
+            ? (inventory != null && inventory.CanStackAt(item, cell.x, cell.y)
+                ? HighlightState.Special
+                : HighlightState.Valid)
+            : HighlightState.Invalid;
+
+        UpdateHighlights(item, state);
+
+        item.posX = originalX;
+        item.posY = originalY;
+    }
+
+    public void ClearDropPreview()
+    {
+        ClearHighlights();
+    }
+
+    public bool TryPlaceItem(ItemData item, Vector2 screenPosition)
+    {
+        if (inventory == null)
+        {
+            return false;
+        }
+
+        Vector2Int cell = ScreenToCell(screenPosition);
+        item.posX = cell.x;
+        item.posY = cell.y;
+
+        return inventory.TryPlaceOrStackAt(item, cell.x, cell.y);
+    }
+
+    public bool TryRestoreItem(ItemData item)
+    {
+        if (inventory == null)
+        {
+            return false;
+        }
+
+        return inventory.PlaceItem(item);
+    }
+
+    public void RefreshView()
+    {
+        RebuildView();
+    }
+
     public void UpdateHighlights(ItemData item, HighlightState state)
     {
         ClearHighlights();
+
+        if (cellHighlights == null || inventory == null)
+        {
+            return;
+        }
 
         int w = item.rotated ? item.sizeY : item.sizeX;
         int h = item.rotated ? item.sizeX : item.sizeY;
@@ -87,10 +247,22 @@ public class GridInventoryUI : MonoBehaviour
                 ? specialColor
                 : invalidColor;
 
-        for (int x = item.posX; x < item.posX + w; x++)
-            for (int y = item.posY; y < item.posY + h; y++)
-                if (x >= 0 && x < inventory.sizeX && y >= 0 && y < inventory.sizeY)
-                    cellHighlights[y * inventory.sizeX + x].color = c;
+        int startX = Mathf.Max(0, item.posX);
+        int startY = Mathf.Max(0, item.posY);
+        int endX = Mathf.Min(inventory.sizeX, item.posX + w);
+        int endY = Mathf.Min(inventory.sizeY, item.posY + h);
+
+        for (int x = startX; x < endX; x++)
+        {
+            for (int y = startY; y < endY; y++)
+            {
+                int index = y * inventory.sizeX + x;
+                if (index >= 0 && index < cellHighlights.Length)
+                {
+                    cellHighlights[index].color = c;
+                }
+            }
+        }
     }
 
     public void ClearHighlights()
@@ -146,24 +318,16 @@ public class GridInventoryUI : MonoBehaviour
         rt.anchoredPosition = new Vector2(item.posX * cellSize, -item.posY * cellSize);
     }
 
-    public bool TryPlaceItem(ItemData item)
-    {
-        if (!inventory.PlaceItem(item)) return false;
-        AddItemUI(item);
-        return true;
-    }
-
-    public void TryRemoveItem(ItemData item)
-    {
-        if (!inventory.RemoveItem(item)) return;
-        RemoveItemUI(item);
-    }
-
     public Vector2Int ScreenToCell(Vector2 screenPos)
     {
-        Camera cam = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
-            ? null
-            : rootCanvas.worldCamera;
+        if (gridPanel == null)
+        {
+            return new Vector2Int(-1, -1);
+        }
+
+        Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? rootCanvas.worldCamera
+            : null;
 
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
             gridPanel, screenPos, cam, out Vector2 local))

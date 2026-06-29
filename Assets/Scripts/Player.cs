@@ -5,6 +5,17 @@ using UnityEngine;
 public class Player : Unit
 {
     public Inventory Inventory;
+    
+    int accessorySlotCount = 2;
+
+   /* public EquipmentSlot[] EquipmentSlots =
+    {
+        new EquipmentSlot(EquipmentType.Helmet),
+        new EquipmentSlot(EquipmentType.Chest),
+        new EquipmentSlot(EquipmentType.Backpack),
+        new EquipmentSlot(EquipmentType.Accessory)
+    };*/
+    public EquipmentSlot HelmetSlot = new EquipmentSlot(EquipmentType.Helmet);
 
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float jumpForce = 12f;
@@ -25,11 +36,11 @@ public class Player : Unit
     {
         Inventory ??= new Inventory();
 
-        List<ItemDefinition> definitions = ItemRegistry.instance != null
-            ? ItemRegistry.instance.GetAllDefinitions()
+        List<ItemDefinition> definitions = Registry.instance != null
+            ? Registry.instance.GetAllDefinitions()
             : new List<ItemDefinition>();
 
-        int widthLimit = 12;
+        int widthLimit = 9;
         int widestItem = 1;
 
         foreach (ItemDefinition definition in definitions)
@@ -99,17 +110,9 @@ public class Player : Unit
 
                 rowHeight = Mathf.Max(rowHeight, itemHeight);
 
-                ItemData item = new ItemData
-                {
-                    itemID = definition.itemID,
-                    sizeX = definition.sizeX,
-                    sizeY = definition.sizeY,
-                    amount = 1,
-                    value = definition.value,
-                    posX = cursorX,
-                    posY = cursorY,
-                    rotated = false
-                };
+                ItemData item = definition.GenerateData();
+                item.posX = cursorX;
+                item.posY = cursorY;
 
                 if (!Inventory.TryPlaceWithStacking(item))
                 {
