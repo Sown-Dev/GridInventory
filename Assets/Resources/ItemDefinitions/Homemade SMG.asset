@@ -12,9 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8349c619c59c4bb492140b9ed2f2fa8b, type: 3}
   m_Name: Homemade SMG
   m_EditorClassIdentifier: 
-  itemID: 3
+  itemID: -131881401
+  assetGuid: 49bac7e108975b34eb7202441a8ec85a
   value: 1000
   sizeX: 3
   sizeY: 2
   maxAmount: 1
   icon: {fileID: 21300000, guid: 8e18ee18891bb064aa159df5d19f7d55, type: 3}
+  componentDefinitions:
+  - {fileID: 11400000, guid: 8fd7d7d8b518a634c893a4a11de7ec81, type: 2}
+  description: Might not always work

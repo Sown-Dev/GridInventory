@@ -18,6 +18,8 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public RectTransform ContainerRect => slotRoot != null ? slotRoot : transform as RectTransform;
 
+
+    private RectTransform myRt;
     protected virtual void Awake()
     {
         if (slotRoot == null)
@@ -29,6 +31,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
         {
             itemRoot = slotRoot;
         }
+        myRt=GetComponent<RectTransform>();
     }
 
     protected virtual void OnEnable()
@@ -65,6 +68,8 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
         }
 
         slot.myItem = null;
+        slot.OnChanged?.Invoke();
+        
         return true;
     }
 
@@ -134,6 +139,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
         {
             currentItemUI.Init(slot.myItem, this, null);
             RectTransform rt = currentItemUI.RectTransform;
+            rt.sizeDelta = myRt.sizeDelta;
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);

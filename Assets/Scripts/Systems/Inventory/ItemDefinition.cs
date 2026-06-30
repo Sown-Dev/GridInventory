@@ -14,6 +14,7 @@ public class ItemDefinition : ScriptableObject
     
     public List<ComponentDefinition> componentDefinitions;
 
+    public string description;
     public ItemData GenerateData()
     {
         ItemData item = new ItemData
@@ -38,7 +39,7 @@ public class ItemDefinition : ScriptableObject
                     continue;
                 }
 
-                ItemComponent component = componentDefinition.GenerateComponent();
+                ItemComponent component = componentDefinition.GenerateComponentS();
                 if (component != null)
                 {
                     components.Add(component);

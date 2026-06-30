@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Registry : MonoBehaviour
@@ -7,7 +7,7 @@ public class Registry : MonoBehaviour
 
     private Dictionary<int, ItemDefinition> definitions = new Dictionary<int, ItemDefinition>();
     private Dictionary<int, ComponentDefinition> componentDefinitions = new Dictionary<int, ComponentDefinition>();
-
+    
     void Awake()
     {
         instance = this;

@@ -7,7 +7,7 @@ public abstract class ComponentDefinition : ScriptableObject
     public int ID;
     [SerializeField, HideInInspector] private string assetGuid;
 
-    public abstract ItemComponent GenerateComponent();
+    public abstract ItemComponent GenerateComponentS();
 
 #if UNITY_EDITOR
     private void OnEnable()

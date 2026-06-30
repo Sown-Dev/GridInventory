@@ -5,19 +5,21 @@ using UnityEngine;
 
 
 [CreateAssetMenu(fileName = "Equiment", menuName = "Inventory/Equipment Component")]
-public class EquipmentComponentDefinition : ComponentDefinition
+public class EquipmentComponentDefinition :  DurabilityComponentDefinition
 {
     public EquipmentType equipmentType;
-    public int maxDurability;
     
     public Sprite icon;
     
-    public override ItemComponent GenerateComponent()
+    public Stats stats;
+    
+    public override ItemComponent GenerateComponentS()
     {
         return new EquipmentItemComponent
         {
             definitionID = ID,
-            durability = maxDurability
+            durability = RandomDurability(),
+            maxDurability = maxDurability,
         };
     }
 }

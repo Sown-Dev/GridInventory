@@ -16,7 +16,7 @@ public class ItemData
 
     public ItemComponent[] Components;
     
-    public virtual ItemComponent GetComponent<T>() where T : ItemComponent
+    public virtual T GetComponent<T>() where T : ItemComponent
     {
         if (Components == null) return null;
 
@@ -43,6 +43,14 @@ public class ItemData
         }
 
         return false;
+    }
+    public string GetName()
+    {
+        return Registry.instance.ByID(itemID).name;
+    }
+    public string GetDescription()
+    {
+        return Registry.instance.ByID(itemID).description;
     }
 }
 

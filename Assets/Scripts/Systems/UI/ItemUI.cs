@@ -1,9 +1,10 @@
-﻿using TMPro;
+using TMPro;
+using UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public RectTransform RectTransform { get; private set; }
 
@@ -22,6 +23,9 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     public Image itemIcon;
     public TMP_Text stackAmount;
     public TMP_Text weaponText;
+    public Image durabilityBar;
+
+    private Material mat;
 
     void Awake()
     {
@@ -31,6 +35,12 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         if (canvasGroup == null)
         {
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        }
+
+        if (itemIcon != null && itemIcon.material != null)
+        {
+            mat = new Material(itemIcon.material);
+            itemIcon.material = mat;
         }
     }
 
@@ -48,8 +58,15 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         {
             Image img = itemIcon;
             img.sprite  = def.icon;
-            img.color   = Color.white;  // in case it was tinted transparent as a default
+            img.color   = Color.white;
             img.SetNativeSize();
+
+            // Pass the exact pixel dimensions of the sprite to the shader material
+            if (mat != null)
+            {
+                Vector2 spriteSize = def.icon.textureRect.size;
+                mat.SetVector("_SpriteDimensions", new Vector4(spriteSize.x, spriteSize.y, 0, 0));
+            }
         }
         UpdateVisuals();
     }
@@ -92,6 +109,58 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         {
             stackAmount.text = item.amount > 1 ? item.amount.ToString() : string.Empty;
         }
+        
+        if(item.HasComponent<GunItemComponent>()){
+            
+            weaponText.text = item.GetComponent<GunItemComponent>().AmmoCount() + "/" +item.GetComponent<GunItemComponent>().MagSize();
+
+        }
+        else{
+            weaponText.text = "";
+        }
+        if(item.HasComponent<DurabilityItemComponent>()){
+            durabilityBar.enabled  = true; 
+            durabilityBar.fillAmount = (float)item.GetComponent<DurabilityItemComponent>().durability / (float)item.GetComponent<DurabilityItemComponent>().maxDurability;
+            durabilityBar.color = Color.Lerp(Color.red, new Color( 0.5f, 0.8f,0.5f), durabilityBar.fillAmount);
+        }
+        else
+        {
+            durabilityBar.enabled = false;
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (isDragging) return;
+
+        if (mat != null)
+        {
+            mat.SetFloat("_OutlineThickness", 1);
+            mat.SetColor("_OutlineColor", Color.white);
+        }
+
+        ShowTooltip();
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (mat != null)
+        {
+            mat.SetFloat("_OutlineThickness", 0);
+            mat.SetColor("_OutlineColor", Color.clear);
+        }
+
+        HideTooltip();
+    }
+
+    private void ShowTooltip()
+    {
+        TooltipManager.Instance.ShowItem(item, RectTransform.position, gameObject,useOffset:true, useWorldSpace: false);
+    }
+
+    private void HideTooltip()
+    {
+        TooltipManager.Instance.Hide();
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -105,6 +174,13 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         sourceContainer?.TryRemoveItem(item);
         isDragging = true;
         currentDropTarget = null;
+
+        HideTooltip();
+        if (mat != null)
+        {
+            mat.SetFloat("_OutlineThickness", 0);
+            mat.SetColor("_OutlineColor", Color.clear);
+        }
 
         canvasGroup.blocksRaycasts = false;
 
@@ -127,7 +203,6 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         }
 
         RectTransform.SetAsLastSibling();
-
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -181,6 +256,16 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
         currentDropTarget = null;
         sourceContainer = null;
+
+        if (EventSystem.current.IsPointerOverGameObject() && RectTransformUtility.RectangleContainsScreenPoint(RectTransform, Input.mousePosition))
+        {
+            if (mat != null)
+            {
+                mat.SetFloat("_OutlineThickness", 1);
+                mat.SetColor("_OutlineColor", Color.white);
+            }
+            ShowTooltip();
+        }
     }
 
     private void UpdateDragPreview()

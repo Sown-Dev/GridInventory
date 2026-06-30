@@ -8,7 +8,7 @@ namespace DefaultNamespace.Systems.UI
 
 
         public EquipmentSlotUI helmetSlot;
-        
+        public EquipmentSlotUI chestSlot;
         public Player Player;
 
         private void Awake()
@@ -21,6 +21,7 @@ namespace DefaultNamespace.Systems.UI
             if( Player != null)
             {
                helmetSlot.BindSlot( Player.HelmetSlot);
+               chestSlot.BindSlot( Player.ChestSlot);
             }
         }
     }

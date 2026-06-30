@@ -1,13 +1,18 @@
-﻿
-using System;
 
-    [Serializable]
+using System;
+using Unity.VisualScripting;
+
+[Serializable]
     public class InventorySlot
     {
         
         //can be null if empty
         public ItemData myItem;
-        
+
+        [DoNotSerialize]
+        public Action OnChanged;
+
+        public int maxStackSize = -1;
         
         public virtual bool canInsert(ItemData item)
         {
@@ -19,9 +24,14 @@ using System;
             if (canInsert(item))
             {
                 myItem = item;
+                OnChanged?.Invoke();
                 return true;
             }
             return false;
+        }
+        public bool IsEmpty()
+        {
+            return myItem == null;
         }
         
     }
@@ -56,5 +66,15 @@ using System;
             }
 
             return false;
+        }
+
+        public EquipmentComponentDefinition GetDefinition()
+        {
+            if (myItem != null && myItem.HasComponent<EquipmentItemComponent>())
+            {
+                EquipmentItemComponent equipComp = (EquipmentItemComponent)myItem.GetComponent<EquipmentItemComponent>();
+                return (EquipmentComponentDefinition)equipComp.GetDefinition();
+            }
+            return null;
         }
     }

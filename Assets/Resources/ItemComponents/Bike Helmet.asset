@@ -17,3 +17,9 @@ MonoBehaviour:
   equipmentType: 2
   maxDurability: 32
   icon: {fileID: 21300000, guid: 4a665d6787e3c06458ee97cd90d157a3, type: 3}
+  stats:
+    stats:
+    - type: 1
+      amount: 10
+      operation: 2
+      hidden: 0

@@ -1,9 +1,13 @@
 ﻿
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : Unit
+public class Player : StatsUnit
 {
+    public static Player instance;
+    
+    
     public Inventory Inventory;
     
     int accessorySlotCount = 2;
@@ -16,6 +20,7 @@ public class Player : Unit
         new EquipmentSlot(EquipmentType.Accessory)
     };*/
     public EquipmentSlot HelmetSlot = new EquipmentSlot(EquipmentType.Helmet);
+    public EquipmentSlot ChestSlot = new EquipmentSlot(EquipmentType.Chest);
 
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float jumpForce = 12f;
@@ -26,10 +31,55 @@ public class Player : Unit
     private float moveInput;
     private bool jumpRequested;
 
+
+   void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Debug.LogWarning("Multiple instances of Player detected. Destroying duplicate.");
+            Destroy(gameObject);
+        }
+    }
+
     public override void Start()
     {
         base.Start();
+    }
+
+    
+    
+    public void OnEnable()
+    {
+        HelmetSlot.OnChanged += OnEquipmentChanged;
+        ChestSlot.OnChanged += OnEquipmentChanged;
         InitializeInventoryForTesting();
+    }
+    
+    public void OnDisable()
+    {
+        HelmetSlot.OnChanged -= OnEquipmentChanged;
+        ChestSlot.OnChanged -= OnEquipmentChanged;
+    }
+    
+    public virtual void OnEquipmentChanged()
+    {
+        Debug.Log("Called OnEquipmentChanged");
+        CalculateStats();
+    }
+
+    
+    
+    public override void CalculateStats()
+    {
+        base.CalculateStats();
+        
+        finalStats.Combine(  HelmetSlot.GetDefinition()? .stats);
+        finalStats.Combine(  ChestSlot.GetDefinition()? .stats);
+        ApplyStats();
     }
 
     private void InitializeInventoryForTesting()

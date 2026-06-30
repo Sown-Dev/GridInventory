@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: -1298120006
   assetGuid: 33a4b30da9c129c4196068bfe158e41f
-  MagSize: 30
-  AmmoCount: 0
+  maxDurability: 1000
+  MagSize: 18
   Upgrades:
     inv: []
-    sizeX: 0
-    sizeY: 0
+    sizeX: 2
+    sizeY: 2
   CompatibleAmmo: 7818c6ae
