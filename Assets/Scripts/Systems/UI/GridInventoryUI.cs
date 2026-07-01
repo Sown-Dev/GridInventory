@@ -160,6 +160,11 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
+        if (TryGetAmmoLoadTarget(item, screenPosition, out _, out _))
+        {
+            return true;
+        }
+
         Vector2Int cell = ScreenToCell(screenPosition);
         int originalX = item.posX;
         int originalY = item.posY;
@@ -177,6 +182,20 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public void UpdateDropPreview(ItemData item, Vector2 screenPosition, bool valid)
     {
+        if (TryGetAmmoLoadTarget(item, screenPosition, out ItemData weaponItem, out _))
+        {
+            if (valid)
+            {
+                UpdateHighlights(weaponItem, HighlightState.Special);
+            }
+            else
+            {
+                ClearHighlights();
+            }
+
+            return;
+        }
+
         Vector2Int cell = ScreenToCell(screenPosition);
         int originalX = item.posX;
         int originalY = item.posY;
@@ -206,6 +225,11 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         if (inventory == null)
         {
             return false;
+        }
+
+        if (TryGetAmmoLoadTarget(item, screenPosition, out _, out GunItemComponent gunComponent))
+        {
+            return gunComponent.TryInsertAmmo(item);
         }
 
         Vector2Int cell = ScreenToCell(screenPosition);
@@ -339,5 +363,32 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         int cellY = Mathf.FloorToInt(-local.y / cellSize);
         
         return new Vector2Int(cellX, cellY);
+    }
+
+    private bool TryGetAmmoLoadTarget(ItemData item, Vector2 screenPosition, out ItemData weaponItem, out GunItemComponent gunComponent)
+    {
+        weaponItem = null;
+        gunComponent = null;
+
+        if (inventory == null || item == null)
+        {
+            return false;
+        }
+
+        Vector2Int cell = ScreenToCell(screenPosition);
+        if (cell.x < 0 || cell.y < 0)
+        {
+            return false;
+        }
+
+        weaponItem = inventory.GetItemAt(cell.x, cell.y);
+        if (weaponItem == null || !weaponItem.HasComponent<GunItemComponent>())
+        {
+            weaponItem = null;
+            return false;
+        }
+
+        gunComponent = weaponItem.GetComponent<GunItemComponent>();
+        return gunComponent != null && gunComponent.CanAcceptAmmo(item);
     }
 }

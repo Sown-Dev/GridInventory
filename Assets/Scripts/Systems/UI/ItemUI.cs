@@ -61,7 +61,6 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             img.color   = Color.white;
             img.SetNativeSize();
 
-            // Pass the exact pixel dimensions of the sprite to the shader material
             if (mat != null)
             {
                 Vector2 spriteSize = def.icon.textureRect.size;
@@ -110,15 +109,17 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             stackAmount.text = item.amount > 1 ? item.amount.ToString() : string.Empty;
         }
         
-        if(item.HasComponent<GunItemComponent>()){
-            
+        if(item.HasComponent<GunItemComponent>())
+        {
             weaponText.text = item.GetComponent<GunItemComponent>().AmmoCount() + "/" +item.GetComponent<GunItemComponent>().MagSize();
-
         }
-        else{
+        else
+        {
             weaponText.text = "";
         }
-        if(item.HasComponent<DurabilityItemComponent>()){
+
+        if(item.HasComponent<DurabilityItemComponent>())
+        {
             durabilityBar.enabled  = true; 
             durabilityBar.fillAmount = (float)item.GetComponent<DurabilityItemComponent>().durability / (float)item.GetComponent<DurabilityItemComponent>().maxDurability;
             durabilityBar.color = Color.Lerp(Color.red, new Color( 0.5f, 0.8f,0.5f), durabilityBar.fillAmount);
@@ -155,7 +156,7 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
     private void ShowTooltip()
     {
-        TooltipManager.Instance.ShowItem(item, RectTransform.position, gameObject,useOffset:true, useWorldSpace: false);
+        TooltipManager.Instance.ShowItem(item, RectTransform.position, gameObject, useOffset:true, useWorldSpace: false);
     }
 
     private void HideTooltip()
@@ -233,10 +234,46 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
         currentDropTarget?.ClearDropPreview();
 
+        // 1. Calculate Split Logic
+        bool splitOnDrop = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && origAmount > 1;
+        int droppedAmount = origAmount;
+        int remainingAtOrigin = 0;
+
+        if (splitOnDrop)
+        {
+            droppedAmount = Mathf.Max(1, origAmount / 2);
+            remainingAtOrigin = origAmount - droppedAmount;
+            item.amount = droppedAmount;
+        }
+
+        // 2. Attempt Placement
         bool dropped = currentDropTarget != null && currentDropTarget.TryPlaceItem(item, eventData.position);
 
-        if (!dropped && sourceContainer != null)
+        if (dropped)
         {
+            // 3. Handle Leftovers
+            if (splitOnDrop && remainingAtOrigin > 0 && sourceContainer != null)
+            {
+                // Create a duplicate item for the remaining half.
+                // Note: If ItemData requires deep copying (due to components), 
+                // replace this block with an item.Clone() method if you have one.
+                ItemData originHalf = new ItemData
+                {
+                    itemID = item.itemID,
+                    sizeX = item.sizeX,
+                    sizeY = item.sizeY,
+                    amount = remainingAtOrigin,
+                    posX = origX,
+                    posY = origY,
+                    rotated = origRotated
+                };
+
+                sourceContainer.TryRestoreItem(originHalf);
+            }
+        }
+        else if (sourceContainer != null)
+        {
+            // 4. Handle Failed Placement
             item.posX    = origX;
             item.posY    = origY;
             item.amount  = origAmount;
@@ -290,7 +327,19 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             return;
         }
 
+        // Temporarily adjust item amount so the container preview accurately evaluates weight/limits
+        bool splitOnDrop = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && origAmount > 1;
+        if (splitOnDrop)
+        {
+            item.amount = Mathf.Max(1, origAmount / 2);
+        }
+
         bool valid = currentDropTarget.CanAcceptItem(item, Input.mousePosition);
         currentDropTarget.UpdateDropPreview(item, Input.mousePosition, valid);
+
+        if (splitOnDrop)
+        {
+            item.amount = origAmount;
+        }
     }
 }

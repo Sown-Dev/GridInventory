@@ -7,7 +7,6 @@ public class EquipmentSlotUI : InventorySlotUI
 
     private EquipmentSlot equipmentSlot = new EquipmentSlot();
     
-    public Image backgroundImage;    
     
     protected override void Awake()
     {

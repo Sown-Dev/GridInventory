@@ -31,7 +31,7 @@ using Unity.VisualScripting;
         }
         public bool IsEmpty()
         {
-            return myItem == null;
+            return myItem == null || myItem.amount <= 0;
         }
         
     }

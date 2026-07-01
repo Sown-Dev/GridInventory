@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Player : StatsUnit
@@ -22,6 +23,10 @@ public class Player : StatsUnit
     public EquipmentSlot HelmetSlot = new EquipmentSlot(EquipmentType.Helmet);
     public EquipmentSlot ChestSlot = new EquipmentSlot(EquipmentType.Chest);
 
+    public WeaponSlot WeaponSlot1 = new WeaponSlot();
+    
+    public WeaponSlot WeaponSlot2 = new WeaponSlot();
+
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float jumpForce = 12f;
     [SerializeField] private Transform groundCheck;
@@ -30,6 +35,7 @@ public class Player : StatsUnit
 
     private float moveInput;
     private bool jumpRequested;
+
 
 
    void Awake()
@@ -56,6 +62,8 @@ public class Player : StatsUnit
     {
         HelmetSlot.OnChanged += OnEquipmentChanged;
         ChestSlot.OnChanged += OnEquipmentChanged;
+        WeaponSlot1.OnChanged += OnEquipmentChanged;
+        WeaponSlot2.OnChanged += OnEquipmentChanged;
         InitializeInventoryForTesting();
     }
     
@@ -63,6 +71,8 @@ public class Player : StatsUnit
     {
         HelmetSlot.OnChanged -= OnEquipmentChanged;
         ChestSlot.OnChanged -= OnEquipmentChanged;
+        WeaponSlot1.OnChanged -= OnEquipmentChanged;
+        WeaponSlot2.OnChanged -= OnEquipmentChanged;
     }
     
     public virtual void OnEquipmentChanged()
@@ -70,8 +80,76 @@ public class Player : StatsUnit
         Debug.Log("Called OnEquipmentChanged");
         CalculateStats();
     }
-
     
+    #region WeaponEquiping
+    
+    public InventorySlot EquippedSlot;
+    public bool EquipSlot(int slotIndex)
+    {
+        if( slotIndex == 1)
+        {
+            EquippedSlot = WeaponSlot1;
+            return true;
+        }
+        else if (slotIndex == 2)
+        {
+            EquippedSlot = WeaponSlot2;
+            return true;
+        }
+        else if (slotIndex == 3)
+        {
+            EquippedSlot = null;
+            return true;
+        }
+        
+        else
+            return false;
+    }
+    
+    public SpriteRenderer gunSpriteRenderer; // Assign this in the inspector
+    public GameObject gunRoot;
+
+    protected void HandleEquipped()
+    {
+        if(EquippedSlot is WeaponSlot weaponSlot)
+        {
+            if (WeaponSlot1.IsEmpty())
+            {
+                return;
+            }
+        
+            // 1) draw weapon model
+            gunSpriteRenderer.sprite = WeaponSlot1.myItem.GetIcon();
+            gunRoot.SetActive(true);
+        
+            // set rotation:
+            // Get the mouse position in world space
+            Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        
+            // Calculate the direction vector from the gun to the mouse
+            Vector3 direction = mouseWorldPosition - gunRoot.transform.position;
+        
+            // Calculate the rotation angle in degrees
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        
+            // Apply the rotation on the Z axis
+            gunRoot.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        
+        
+            if( Input.GetButtonDown("Fire1"))
+            {
+                Debug.Log("Firing weapon!");
+            }
+            
+        }
+        else
+        {
+            gunRoot.SetActive(false);
+            Debug.Log("No weapon equipped.");
+        }
+    }
+
+    #endregion
     
     public override void CalculateStats()
     {
@@ -83,6 +161,12 @@ public class Player : StatsUnit
     }
 
     private void InitializeInventoryForTesting()
+    {
+        InitializeInventorySetup();
+        PopulateInventoryWithTestItems();
+    }
+
+    private void InitializeInventorySetup()
     {
         Inventory ??= new Inventory();
 
@@ -134,6 +218,18 @@ public class Player : StatsUnit
 
         Inventory.sizeX = widthLimit;
         Inventory.sizeY = requiredHeight;
+    }
+
+    private void PopulateInventoryWithTestItems()
+    {
+        if (Inventory == null)
+        {
+            return;
+        }
+
+        List<ItemDefinition> definitions = Registry.instance != null
+            ? Registry.instance.GetAllDefinitions()
+            : new List<ItemDefinition>();
 
         int cursorX = 0;
         int cursorY = 0;
@@ -151,7 +247,7 @@ public class Player : StatsUnit
 
             for (int copy = 0; copy < 2; copy++)
             {
-                if (cursorX > 0 && cursorX + itemWidth > widthLimit)
+                if (cursorX > 0 && cursorX + itemWidth > Inventory.sizeX)
                 {
                     cursorX = 0;
                     cursorY += rowHeight;
@@ -161,6 +257,7 @@ public class Player : StatsUnit
                 rowHeight = Mathf.Max(rowHeight, itemHeight);
 
                 ItemData item = definition.GenerateData();
+                item.amount = Mathf.Max(1, definition.maxAmount);
                 item.posX = cursorX;
                 item.posY = cursorY;
 
@@ -182,6 +279,17 @@ public class Player : StatsUnit
         {
             jumpRequested = true;
         }
+        
+        if( Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            EquipSlot(1);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            EquipSlot(2);
+        }
+        
+        HandleEquipped();
     }
 
     private void FixedUpdate()

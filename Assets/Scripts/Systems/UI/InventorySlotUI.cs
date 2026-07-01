@@ -7,11 +7,16 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
     [SerializeField] private RectTransform itemRoot;
     [SerializeField] private GameObject itemUIPrefab;
     [SerializeField] private Image previewImage;
+    
+    [SerializeField] private Image backgroundImage;
+    
+    [SerializeField] private bool flipOnInsert = false;
 
     [Header("Preview Colors")]
     [SerializeField] private Color defaultColor = new Color(1f, 1f, 1f, 0f);
     [SerializeField] private Color validColor = new Color(0f, 1f, 0f, 0.3f);
     [SerializeField] private Color invalidColor = new Color(1f, 0f, 0f, 0.3f);
+    [SerializeField] private Color specialColor = new Color(1f, 0.9f, 0f, 0.35f);
 
     protected InventorySlot slot = new InventorySlot();
     private ItemUI currentItemUI;
@@ -75,7 +80,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
-        return ContainsScreenPoint(screenPosition) && slot.canInsert(item);
+        return ContainsScreenPoint(screenPosition) && (slot.canInsert(item) || CanLoadAmmoIntoWeapon(item));
     }
 
     public virtual void UpdateDropPreview(ItemData item, Vector2 screenPosition, bool valid)
@@ -85,7 +90,17 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             return;
         }
 
-        previewImage.color = valid ? validColor : invalidColor;
+        if (!valid)
+        {
+            previewImage.color = invalidColor;
+            return;
+        }
+        
+        
+
+        previewImage.color = CanLoadAmmoIntoWeapon(item) ? specialColor : validColor;
+        
+        
     }
 
     public virtual void ClearDropPreview()
@@ -100,7 +115,19 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool TryPlaceItem(ItemData item, Vector2 screenPosition)
     {
-        if (!CanAcceptItem(item, screenPosition))
+        item.rotated = flipOnInsert || item.rotated;
+        if (!ContainsScreenPoint(screenPosition))
+        {
+            return false;
+        }
+
+        if (CanLoadAmmoIntoWeapon(item))
+        {
+            GunItemComponent gunComponent = slot.myItem.GetComponent<GunItemComponent>();
+            return gunComponent != null && gunComponent.TryInsertAmmo(item);
+        }
+
+        if (!slot.canInsert(item))
         {
             return false;
         }
@@ -146,7 +173,25 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             rt.anchoredPosition = Vector2.zero;
         }
 
+       
         ClearDropPreview();
+        
+        if( backgroundImage != null)
+        {
+            backgroundImage.gameObject.SetActive( slot.IsEmpty());
+        }
+
+    }
+
+    private bool CanLoadAmmoIntoWeapon(ItemData item)
+    {
+        if (item == null || slot.myItem == null || !slot.myItem.HasComponent<GunItemComponent>())
+        {
+            return false;
+        }
+
+        GunItemComponent gunComponent = slot.myItem.GetComponent<GunItemComponent>();
+        return gunComponent != null && gunComponent.CanAcceptAmmo(item);
     }
 }
 

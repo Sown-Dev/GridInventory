@@ -52,6 +52,11 @@ public class ItemData
     {
         return Registry.instance.ByID(itemID).description;
     }
+    
+    public Sprite GetIcon()
+    {
+        return Registry.instance.ByID(itemID).icon;
+    }
 }
 
 

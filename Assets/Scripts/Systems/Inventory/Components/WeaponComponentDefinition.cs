@@ -9,6 +9,8 @@ using UnityEngine;
 public class WeaponComponentDefinition : DurabilityComponentDefinition
 {
     public int MagSize = 30;
+    public int baseDamage = 10;
+    public float baseFireRate = 300;
     public Inventory Upgrades;
 
     public int[] CompatibleAmmo;
