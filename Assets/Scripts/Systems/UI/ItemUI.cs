@@ -247,7 +247,17 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         }
 
         // 2. Attempt Placement
-        bool dropped = currentDropTarget != null && currentDropTarget.TryPlaceItem(item, eventData.position);
+        bool dropped = false;
+
+        if (currentDropTarget is InventorySlotUI slotUI && slotUI.CanAcceptItem(item, eventData.position))
+        {
+            dropped = slotUI.TrySwapItem(item, sourceContainer)
+                || slotUI.TryPlaceItem(item, eventData.position);
+        }
+        else
+        {
+            dropped = currentDropTarget != null && currentDropTarget.TryPlaceItem(item, eventData.position);
+        }
 
         if (dropped)
         {
@@ -269,6 +279,25 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
                 };
 
                 sourceContainer.TryRestoreItem(originHalf);
+            }
+
+            if (sourceContainer != null && item.amount > 0 && item.amount < droppedAmount)
+            {
+                ItemData leftover = new ItemData
+                {
+                    itemID = item.itemID,
+                    sizeX = item.sizeX,
+                    sizeY = item.sizeY,
+                    amount = item.amount,
+                    posX = origX,
+                    posY = origY,
+                    rotated = origRotated,
+                    value = item.value,
+                    Components = item.Components
+                };
+
+                sourceContainer.TryRestoreItem(leftover);
+                item.amount = 0;
             }
         }
         else if (sourceContainer != null)

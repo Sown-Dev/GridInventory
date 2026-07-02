@@ -249,6 +249,11 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         return inventory.PlaceItem(item);
     }
 
+    public bool TryPlaceItemAnywhere(ItemData item)
+    {
+        return inventory != null && inventory.TryPlaceAnywhere(item);
+    }
+
     public void RefreshView()
     {
         RebuildView();

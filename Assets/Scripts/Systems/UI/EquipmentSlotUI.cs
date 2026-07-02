@@ -35,9 +35,15 @@ public class EquipmentSlotUI : InventorySlotUI
         return base.TryPlaceItem(item, screenPosition);
     }
 
+    public override bool TrySwapItem(ItemData item, IItemContainerUI sourceContainer)
+    {
+        equipmentSlot.acceptedTypes = acceptedTypes;
+        return base.TrySwapItem(item, sourceContainer);
+    }
+
     public override bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
         equipmentSlot.acceptedTypes = acceptedTypes;
-        return ContainsScreenPoint(screenPosition) && equipmentSlot.canInsert(item);
+        return base.CanAcceptItem(item, screenPosition);
     }
 }

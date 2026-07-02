@@ -24,5 +24,10 @@ public class WeaponSlot: InventorySlot
         return false;
     }
 
+    public override bool CanInsertIfEmpty(ItemData item)
+    {
+        return item != null && item.HasComponent<GunItemComponent>();
+    }
+
     
 }

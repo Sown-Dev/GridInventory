@@ -32,7 +32,7 @@ Material:
     - _AlphaThreshold: 0.01
     - _ColorMask: 15
     - _OutlineThickness: 1
-    - _PixelsPerUnit: 64
+    - _PixelsPerUnit: 32
     - _Stencil: 0
     - _StencilComp: 8
     - _StencilOp: 0

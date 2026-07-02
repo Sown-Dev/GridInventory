@@ -80,7 +80,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
-        return ContainsScreenPoint(screenPosition) && (slot.canInsert(item) || CanLoadAmmoIntoWeapon(item));
+        return ContainsScreenPoint(screenPosition) && (slot.canInsert(item) || CanLoadAmmoIntoWeapon(item) || CanSwapItem(item));
     }
 
     public virtual void UpdateDropPreview(ItemData item, Vector2 screenPosition, bool valid)
@@ -133,6 +133,40 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
         }
 
         return slot.Insert(item);
+    }
+
+    public virtual bool TrySwapItem(ItemData item, IItemContainerUI sourceContainer)
+    {
+        if (item == null || slot.myItem == null || CanLoadAmmoIntoWeapon(item) || !CanSwapItem(item))
+        {
+            return false;
+        }
+
+        ItemData displacedItem = slot.myItem;
+        slot.myItem = null;
+        slot.OnChanged?.Invoke();
+
+        if (slot.Insert(item))
+        {
+            if (sourceContainer != null)
+            {
+                if (sourceContainer.TryRestoreItem(displacedItem))
+                {
+                    return true;
+                }
+
+                if (sourceContainer is GridInventoryUI gridInventoryUI && gridInventoryUI.TryPlaceItemAnywhere(displacedItem))
+                {
+                    return true;
+                }
+            }
+
+            slot.myItem = null;
+            slot.OnChanged?.Invoke();
+        }
+
+        slot.Insert(displacedItem);
+        return false;
     }
 
     public virtual bool TryRestoreItem(ItemData item)
@@ -192,6 +226,11 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
         GunItemComponent gunComponent = slot.myItem.GetComponent<GunItemComponent>();
         return gunComponent != null && gunComponent.CanAcceptAmmo(item);
+    }
+
+    protected virtual bool CanSwapItem(ItemData item)
+    {
+        return item != null && slot.myItem != null && slot.CanInsertIfEmpty(item) && !CanLoadAmmoIntoWeapon(item);
     }
 }
 

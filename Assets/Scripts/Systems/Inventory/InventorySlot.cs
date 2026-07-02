@@ -18,6 +18,11 @@ using Unity.VisualScripting;
         {
             return myItem == null;
         }
+
+        public virtual bool CanInsertIfEmpty(ItemData item)
+        {
+            return item != null;
+        }
         
         public virtual bool Insert(ItemData item)
         {
@@ -55,6 +60,22 @@ using Unity.VisualScripting;
         public override bool canInsert(ItemData item)
         {
             if (myItem != null)
+            {
+                return false;
+            }
+
+            if (item.HasComponent<EquipmentItemComponent>())
+            {
+                EquipmentItemComponent equipComp = (EquipmentItemComponent)item.GetComponent<EquipmentItemComponent>();
+                return (acceptedTypes & ((EquipmentComponentDefinition)equipComp.GetDefinition()).equipmentType) != 0;
+            }
+
+            return false;
+        }
+
+        public override bool CanInsertIfEmpty(ItemData item)
+        {
+            if (item == null)
             {
                 return false;
             }

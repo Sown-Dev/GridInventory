@@ -11,6 +11,13 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
     public int MagSize = 30;
     public int baseDamage = 10;
     public float baseFireRate = 300;
+    
+    
+    public WeaponFireMode fireMode = WeaponFireMode.Semi;
+    public float spreadDegrees = 6f;
+    public float recoilStrengthVertical = 1f;    // drives upward/angular kick (the arc/climb)
+    public float recoilStrengthHorizontal = 1f;  // drives outward kickback (away from player, along aim line)
+    public float recoilRecovery = 1f;            // still shared — how fast both settle back down// scales how fast kickback/rotation/spread settle back down
     public Inventory Upgrades;
 
     public int[] CompatibleAmmo;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Unity.VisualScripting;
+using UnityEngine;
 
 [Serializable]
 public class ItemComponent
@@ -45,6 +46,23 @@ public class GunItemComponent : DurabilityItemComponent
         return 0;
     }
 
+    public bool UseAmmo(bool simulate = false)
+    {
+        if (ammoSlot.IsEmpty())
+            return false;
+        
+        if(ammoSlot.myItem.amount <= 0)
+            return false;
+
+        if (!simulate)
+        {
+            ammoSlot.myItem.amount--;
+            ammoSlot.OnChanged?.Invoke();
+        }
+        return true;
+        
+    }
+
     public bool CanAcceptAmmo(ItemData ammo)
     {
         WeaponComponentDefinition definition = GetDefinition<WeaponComponentDefinition>();
@@ -60,17 +78,11 @@ public class GunItemComponent : DurabilityItemComponent
             return false;
         }
 
-        if (ammoSlot.myItem == null)
-        {
-            return ammo.amount <= ammoSlot.maxStackSize;
-        }
+        int currentAmount = ammoSlot.myItem != null && ammoSlot.myItem.itemID == ammo.itemID
+            ? ammoSlot.myItem.amount
+            : 0;
 
-        if (ammoSlot.myItem.itemID != ammo.itemID)
-        {
-            return false;
-        }
-
-        return ammoSlot.myItem.amount + ammo.amount <= ammoSlot.maxStackSize;
+        return currentAmount < ammoSlot.maxStackSize;
     }
 
     public bool TryInsertAmmo(ItemData ammo)
@@ -80,12 +92,42 @@ public class GunItemComponent : DurabilityItemComponent
             return false;
         }
 
-        if (ammoSlot.myItem == null)
+        int currentAmount = ammoSlot.myItem != null && ammoSlot.myItem.itemID == ammo.itemID
+            ? ammoSlot.myItem.amount
+            : 0;
+
+        int ammoSpace = ammoSlot.maxStackSize - currentAmount;
+        int amountToInsert = Mathf.Min(ammoSpace, ammo.amount);
+        if (amountToInsert <= 0)
         {
-            return ammoSlot.Insert(ammo);
+            return false;
         }
 
-        ammoSlot.myItem.amount += ammo.amount;
+        if (ammoSlot.myItem == null)
+        {
+            if (amountToInsert == ammo.amount)
+            {
+                return ammoSlot.Insert(ammo);
+            }
+
+            ItemData acceptedAmmo = new ItemData
+            {
+                itemID = ammo.itemID,
+                sizeX = ammo.sizeX,
+                sizeY = ammo.sizeY,
+                rotated = ammo.rotated,
+                amount = amountToInsert,
+                value = ammo.value,
+                Components = ammo.Components
+            };
+
+            ammoSlot.Insert(acceptedAmmo);
+            ammo.amount -= amountToInsert;
+            return true;
+        }
+
+        ammoSlot.myItem.amount += amountToInsert;
+        ammo.amount -= amountToInsert;
         ammoSlot.OnChanged?.Invoke();
         return true;
     }

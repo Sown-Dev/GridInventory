@@ -139,30 +139,62 @@ public class Inventory
             if (def != null && target.amount < def.maxAmount)
             {
                 int amountToMerge = Mathf.Min(def.maxAmount - target.amount, item.amount);
+                if (amountToMerge <= 0)
+                {
+                    item.amount = originalAmount;
+                    item.posX = originalX;
+                    item.posY = originalY;
+                    return false;
+                }
+
                 target.amount += amountToMerge;
                 item.amount -= amountToMerge;
 
                 if (item.amount <= 0)
                 {
+                    item.amount = 0;
                     return true;
                 }
 
-                if (PlaceItem(item))
-                {
-                    return true;
-                }
-
-                target.amount -= amountToMerge;
-                item.amount = originalAmount;
-                item.posX = originalX;
-                item.posY = originalY;
-                return false;
+                return true;
             }
         }
 
         if (PlaceItem(item))
         {
             return true;
+        }
+
+        item.amount = originalAmount;
+        item.posX = originalX;
+        item.posY = originalY;
+        return false;
+    }
+
+    public bool TryPlaceAnywhere(ItemData item)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+        int originalX = item.posX;
+        int originalY = item.posY;
+        int originalAmount = item.amount;
+
+        for (int y = 0; y < sizeY; y++)
+        {
+            for (int x = 0; x < sizeX; x++)
+            {
+                item.posX = x;
+                item.posY = y;
+
+                if (CanPlace(item))
+                {
+                    inv.Add(item);
+                    return true;
+                }
+            }
         }
 
         item.amount = originalAmount;

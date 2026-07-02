@@ -16,6 +16,12 @@ MonoBehaviour:
   assetGuid: 33a4b30da9c129c4196068bfe158e41f
   maxDurability: 1000
   MagSize: 18
+  baseDamage: 10
+  baseFireRate: 300
+  fireMode: 0
+  spreadDegrees: 6
+  recoilStrength: 4
+  recoilRecovery: 1
   Upgrades:
     inv: []
     sizeX: 2
