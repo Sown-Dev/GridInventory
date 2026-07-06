@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Linq;
+using Unity.Properties;
 using Unity.VisualScripting;
 using UnityEngine;
 
 [Serializable]
+[GeneratePropertyBag]
 public class ItemComponent
 {
     public int definitionID;
@@ -31,11 +33,13 @@ public class ItemComponent
     
 }
 [Serializable]
+[GeneratePropertyBag]
 
 public class EquipmentItemComponent : DurabilityItemComponent
 {
 }
 
+[GeneratePropertyBag]
 [Serializable]
 public class DurabilityItemComponent : ItemComponent
 {

@@ -1,7 +1,9 @@
 ﻿using System;
+using Unity.Properties;
 using UnityEngine;
 
 [Serializable]
+[GeneratePropertyBag]
 public class GunItemComponent : DurabilityItemComponent
 {
     public InventorySlot ammoSlot;

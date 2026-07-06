@@ -1,8 +1,10 @@
 
 using System;
+using Unity.Properties;
 using Unity.VisualScripting;
 
 [Serializable]
+[GeneratePropertyBag]
     public class InventorySlot
     {
         

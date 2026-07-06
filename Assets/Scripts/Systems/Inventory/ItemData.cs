@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Properties;
+using Unity.VisualScripting;
 using UnityEngine;
 
 [Serializable]
+[GeneratePropertyBag]
 public class ItemData
 {
     public int posX;
@@ -14,8 +17,10 @@ public class ItemData
     public int itemID;
     public double value;
 
+    [SerializeReference]
     public ItemComponent[] Components;
     
+    [DoNotSerialize]
     public Action OnChanged;
     
     public virtual T GetComponent<T>() where T : ItemComponent

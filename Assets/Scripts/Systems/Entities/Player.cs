@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using Unity.Properties;
+using Unity.Serialization.Json;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -8,6 +11,25 @@ public enum WeaponFireMode
 {
     Semi,
     Auto
+}
+
+[Serializable]
+[GeneratePropertyBag]
+public class PlayerSaveData
+{
+    public float posX;
+    public float posY;
+    public float posZ;
+
+    public Inventory inventory;
+
+    public ItemData helmetItem;
+    public ItemData chestItem;
+    public ItemData weaponSlot1Item;
+    public ItemData weaponSlot2Item;
+
+    // 0 = nothing equipped, 1 = WeaponSlot1, 2 = WeaponSlot2
+    public int equippedSlotIndex;
 }
 
 public class Player : StatsUnit
@@ -54,6 +76,16 @@ public class Player : StatsUnit
         {
             Debug.LogWarning("Multiple instances of Player detected. Destroying duplicate.");
             Destroy(gameObject);
+            return;
+        }
+
+        if (File.Exists(SaveFilePath))
+        {
+            LoadGame();
+        }
+        else
+        {
+            InitializeNewGame();
         }
     }
 
@@ -85,7 +117,13 @@ public class Player : StatsUnit
         ChestSlot.OnChanged += OnEquipmentChanged;
         WeaponSlot1.OnChanged += OnEquipmentChanged;
         WeaponSlot2.OnChanged += OnEquipmentChanged;
-        InitializeInventoryForTesting();
+
+        // Only seed test items on a genuinely fresh game — a loaded save already has its
+        // real inventory populated in Awake, and this would otherwise stomp it.
+        if (!loadedFromSave)
+        {
+            InitializeInventoryForTesting();
+        }
     }
 
     public void OnDisable()
@@ -149,6 +187,141 @@ public class Player : StatsUnit
 
     #endregion
 
+    #region Save / Load
+
+    private const string SaveFileName = "playersave.json";
+    private string SaveFilePath => Path.Combine(Application.persistentDataPath, SaveFileName);
+
+    private bool loadedFromSave = false;
+
+    private void LoadGame()
+    {
+        string json;
+        try
+        {
+            json = File.ReadAllText(SaveFilePath);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Failed to read save file, initializing new game instead. {e}");
+            InitializeNewGame();
+            return;
+        }
+
+        PlayerSaveData data;
+        try
+        {
+            data = JsonSerialization.FromJson<PlayerSaveData>(json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Failed to parse save data, initializing new game instead. {e}");
+            InitializeNewGame();
+            return;
+        }
+
+        if (data == null)
+        {
+            Debug.LogWarning("Save data was null after parsing, initializing new game instead.");
+            InitializeNewGame();
+            return;
+        }
+
+        ApplyLoadedData(data);
+        loadedFromSave = true;
+    }
+
+    private void ApplyLoadedData(PlayerSaveData data)
+    {
+        transform.position = new Vector3(data.posX, data.posY, data.posZ);
+
+        Inventory = data.inventory ?? new Inventory();
+
+        HelmetSlot.myItem = data.helmetItem;
+        ChestSlot.myItem = data.chestItem;
+        WeaponSlot1.myItem = data.weaponSlot1Item;
+        WeaponSlot2.myItem = data.weaponSlot2Item;
+
+        // Bypasses EquipSlot's "already equipped, no-op" guard since EquippedSlot starts null
+        // here regardless of what was saved.
+        if (data.equippedSlotIndex == 1 || data.equippedSlotIndex == 2)
+        {
+            EquipSlot(data.equippedSlotIndex);
+        }
+
+        // EquipSlot only resets weapon feel / ammo visuals, not stats — and HelmetSlot/ChestSlot
+        // items were assigned directly above without going through Insert(), so OnChanged never
+        // fired for them. Call this once, manually, to pick up both.
+        OnEquipmentChanged();
+    }
+
+    private void InitializeNewGame()
+    {
+        // No new-game setup needed yet beyond leaving the player at its scene-placed position.
+        // Future new-game defaults (starting inventory, stats, etc.) go here.
+    }
+
+    public void SaveGame()
+    {
+        int equippedIndex = 0;
+        if (EquippedSlot == WeaponSlot1) equippedIndex = 1;
+        else if (EquippedSlot == WeaponSlot2) equippedIndex = 2;
+
+        PlayerSaveData data = new PlayerSaveData
+        {
+            posX = transform.position.x,
+            posY = transform.position.y,
+            posZ = transform.position.z,
+            inventory = Inventory,
+            helmetItem = HelmetSlot.myItem,
+            chestItem = ChestSlot.myItem,
+            weaponSlot1Item = WeaponSlot1.myItem,
+            weaponSlot2Item = WeaponSlot2.myItem,
+            equippedSlotIndex = equippedIndex
+        };
+
+        string json = JsonSerialization.ToJson(data);
+
+        try
+        {
+            File.WriteAllText(SaveFilePath, json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to write save file: {e}");
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        SaveGame();
+    }
+
+#if UNITY_EDITOR
+    [ContextMenu("Save Game")]
+    private void SaveGameFromEditor()
+    {
+        SaveGame();
+        Debug.Log($"Player saved from editor context menu to {SaveFilePath}");
+    }
+
+    [ContextMenu("Delete Save File")]
+    private void DeleteSaveFileFromEditor()
+    {
+        if (File.Exists(SaveFilePath))
+        {
+            File.Delete(SaveFilePath);
+            Debug.Log("Save file deleted.");
+        }
+        else
+        {
+            Debug.Log("No save file to delete.");
+        }
+    }
+#endif
+
+    #endregion
+
     #region Equipment / Stats
 
     public virtual void OnEquipmentChanged()
@@ -191,15 +364,10 @@ public class Player : StatsUnit
     public SpriteRenderer gunSpriteRenderer;
     public GameObject gunRoot;
 
-    // Optional: assign a stable point on the player (e.g. a shoulder/hip empty) to use as the
-    // aim/crosshair pivot. If left unassigned, falls back to the player's own transform.
-    // Using a fixed anchor (rather than the gun muzzle, which moves under recoil) avoids a
-    // feedback loop where recoil retreat cancels out the "push crosshair outward" effect.
     public Transform aimOrigin;
 
-    // --- Recoil / spread runtime state ---
     private Vector3 gunRestLocalPosition;
-    private Vector2 lastAimDirection = Vector2.right;   // raw, unrotated: origin -> mouse. Updated every frame.
+    private Vector2 lastAimDirection = Vector2.right;
     private float currentSpread = 0f;
     private float currentRecoilKickback = 0f;
     private float currentRecoilRotation = 0f;
@@ -208,32 +376,23 @@ public class Player : StatsUnit
     private int consecutiveShotsFired = 0;
     private float lastShotTime = -999f;
 
-    // --- Tuning constants ---
-    private const float maxRecoilAngleDegrees = 60f;        // ceiling so sustained auto-fire doesn't spin forever
-    private const float maxRecoilKickbackStacks = 4f;       // kickback caps at recoilStrengthHorizontal * this
-    private const float baseRecoverySpeed = 8f;             // recovery rate at recoilRecovery = 1
-    private const float kickbackRecoverySpeedScale = 0.5f;  // kickback recovers a bit slower than rotation by default
-    private const float sprayHoldWindow = 0.15f;             // shots fired within this window count as one continuous spray
+    private const float maxRecoilAngleDegrees = 60f;
+    private const float maxRecoilKickbackStacks = 4f;
+    private const float baseRecoverySpeed = 8f;
+    private const float kickbackRecoverySpeedScale = 0.5f;
+    private const float sprayHoldWindow = 0.15f;
 
-    // Visual-only damping: the gun sprite echoes recoil far more subtly than the crosshair does,
-    // and is hard-clamped to a small radius so no weapon tuning value can ever fling it far.
-    private const float gunVisualKickbackScale = 0.3f;      // fraction of full kickback the sprite actually shows
-    private const float gunVisualMaxOffsetDistance = 0.4f;   // absolute cap, in local units, regardless of weapon stats
-    private const float gunVisualRotationDampenScale = 1.5f; // sprite rotates almost fully with the "true" recoil angle
+    private const float gunVisualKickbackScale = 0.3f;
+    private const float gunVisualMaxOffsetDistance = 0.4f;
+    private const float gunVisualRotationDampenScale = 1.5f;
 
-    // Below this radius, a normalized aim direction is numerically unstable — tiny mouse jitter
-    // translates into huge angle swings the closer the cursor gets to the aim origin. Freezing
-    // the last good direction inside this radius avoids the crosshair/gun spinning wildly when
-    // the mouse sits near the player.
     private const float aimDirectionDeadzoneRadius = 0.35f;
 
-    // --- Crosshair-facing read access ---
     public Vector2 AimOrigin => aimOrigin != null ? (Vector2)aimOrigin.position : (Vector2)transform.position;
     public float RecoilKickback => currentRecoilKickback;
     public float RecoilAngle => currentSignedRecoilRotation;
     public float CurrentSpreadDegrees => currentSpread;
 
-    // Direction actually used for both the visual gun/crosshair AND the fired bullet.
     public Vector2 RecoiledAimDirection
     {
         get
@@ -255,7 +414,7 @@ public class Player : StatsUnit
         switch (slotIndex)
         {
             case 1:
-                if (EquippedSlot == WeaponSlot1) return false; // already equipped, no-op
+                if (EquippedSlot == WeaponSlot1) return false;
                 EquippedSlot = WeaponSlot1;
                 success = true;
                 break;
@@ -289,8 +448,6 @@ public class Player : StatsUnit
             EquippedSlot?.myItem?.GetComponent<GunItemComponent>()?.GetDefinition<WeaponComponentDefinition>()?.MagSize ?? 0);
     }
 
-    // Looks up the currently equipped weapon's definition, or null if unequipped/invalid.
-    // Used by EquipSlot so it can seed currentSpread at the new weapon's base spread immediately.
     private WeaponComponentDefinition GetEquippedWeaponDef()
     {
         if (EquippedSlot is WeaponSlot weaponSlot && !weaponSlot.IsEmpty())
@@ -321,8 +478,8 @@ public class Player : StatsUnit
     private int reloadingAmmoItemID = -1;
 
     [Header("Reload UI")]
-    [SerializeField] private GameObject reloadBarRoot;   // parent object, toggled active/inactive
-    [SerializeField] private Image reloadBarFill;        // Image component, Fill Method = Radial/Horizontal, Image Type = Filled
+    [SerializeField] private GameObject reloadBarRoot;
+    [SerializeField] private Image reloadBarFill;
 
     [SerializeField] private AmmoVisualizer ammoVisualizer;
 
@@ -385,8 +542,6 @@ public class Player : StatsUnit
         reloadingAmmoItemID = -1;
     }
 
-    // Runs every frame regardless of weapon state — aim tracking must not depend on a valid
-    // equipped weapon, or it freezes at its default value while unarmed.
     private void UpdateAimDirection()
     {
         if (Camera.main == null)
@@ -398,10 +553,6 @@ public class Player : StatsUnit
         Vector2 origin = AimOrigin;
         Vector2 toMouse = (Vector2)mouseWorldPosition - origin;
 
-        // Below aimDirectionDeadzoneRadius, normalizing toMouse is numerically unstable — tiny
-        // mouse jitter produces huge angle swings the closer the cursor gets to the origin.
-        // Freezing the last good direction instead of recomputing avoids the crosshair/gun
-        // spinning wildly when the mouse sits near the player.
         if (toMouse.sqrMagnitude > aimDirectionDeadzoneRadius * aimDirectionDeadzoneRadius)
         {
             lastAimDirection = toMouse.normalized;
@@ -448,15 +599,13 @@ public class Player : StatsUnit
             if (isReloading)
             {
                 if (Time.time >= reloadEndTime) CompleteReload();
-                else return; // no firing mid-reload
+                else return;
             }
 
             bool triggerPulled = weaponDef.fireMode == WeaponFireMode.Auto
                 ? Input.GetButton("Fire1")
                 : Input.GetButtonDown("Fire1");
 
-            // Blocks firing whenever the pointer is over any UI element (inventory, tooltips,
-            // etc.) so clicking to move/drag items doesn't also fire the equipped weapon.
             bool pointerOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
             if (triggerPulled && !pointerOverUI && Time.time >= nextFireTime)
@@ -474,8 +623,6 @@ public class Player : StatsUnit
         if (laserLineRenderer != null) laserLineRenderer.enabled = false;
     }
 
-    // Handles gun sprite rotation/flip/position and decays recoil (kickback + rotation only).
-    // Spread is deliberately NOT touched here — see UpdateSpreadBloom for why.
     private void UpdateGunVisualAndRecoil(WeaponComponentDefinition weaponDef)
     {
         if (gunRoot == null)
@@ -503,10 +650,6 @@ public class Player : StatsUnit
         float dampenedVisualAngle = rawAimAngle + currentSignedRecoilRotation * gunVisualRotationDampenScale;
         gunRoot.transform.rotation = Quaternion.Euler(0f, 0f, dampenedVisualAngle);
 
-        // Kickback offset is computed in world space, then converted into the parent's local
-        // space — required whenever the parent has rotation or non-identity scale (e.g. a
-        // flipped sprite root using localScale.x = -1 for facing direction). Skipping this
-        // conversion is what previously caused the gun to fly to wildly wrong positions.
         Vector3 worldRecoilOffset = -(Vector3)recoiledDir * currentRecoilKickback * gunVisualKickbackScale;
         Vector3 localRecoilOffset = gunRoot.transform.parent != null
             ? gunRoot.transform.parent.InverseTransformVector(worldRecoilOffset)
@@ -515,8 +658,6 @@ public class Player : StatsUnit
         localRecoilOffset = Vector3.ClampMagnitude(localRecoilOffset, gunVisualMaxOffsetDistance);
         gunRoot.transform.localPosition = gunRestLocalPosition + localRecoilOffset;
 
-        // Exponential decay: recovery rate scales with current distance from rest, so a big
-        // recoil spike snaps back quickly at first and eases in as it nears zero.
         float decayFactor = Mathf.Exp(-baseRecoverySpeed * weaponDef.recoilRecovery * Time.deltaTime);
         currentRecoilKickback *= Mathf.Pow(decayFactor, kickbackRecoverySpeedScale);
         currentRecoilRotation *= decayFactor;
@@ -526,10 +667,6 @@ public class Player : StatsUnit
         if (currentRecoilRotation < snapEpsilon) currentRecoilRotation = 0f;
     }
 
-    // Spread only decays once you stop firing for a beat (sprayHoldWindow). This is intentionally
-    // separate from UpdateGunVisualAndRecoil's per-frame decay — spread must hold steady between
-    // shots of the same burst, or it gets erased before it's ever visible. Recovers down toward
-    // baseSpreadDegrees (the floor), not toward zero.
     private void UpdateSpreadBloom(WeaponComponentDefinition weaponDef)
     {
         float idleTime = Time.time - lastShotTime;
@@ -540,7 +677,6 @@ public class Player : StatsUnit
             currentSpread = weaponDef.baseSpreadDegrees + (currentSpread - weaponDef.baseSpreadDegrees) * decayFactor;
             if (currentSpread < weaponDef.baseSpreadDegrees + 0.01f) currentSpread = weaponDef.baseSpreadDegrees;
         }
-        // else: still within the spray window — hold at whatever TryFireWeapon last set.
     }
 
     private void UpdateLaserSight()
@@ -566,7 +702,6 @@ public class Player : StatsUnit
     {
         if (!gunComponent.UseAmmo(true))
         {
-            //Debug.Log("Out of ammo!");
             return;
         }
 
@@ -577,8 +712,6 @@ public class Player : StatsUnit
 
         SetAmmoVisualizer();
 
-        // This shot uses whatever spread already accumulated from prior shots in the burst —
-        // its own contribution below only affects the NEXT shot, same as real bloom.
         float spreadOffset = UnityEngine.Random.Range(-currentSpread, currentSpread);
         Vector2 shotDirection = (Quaternion.Euler(0f, 0f, spreadOffset) * RecoiledAimDirection).normalized;
         Quaternion shotRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(shotDirection.y, shotDirection.x) * Mathf.Rad2Deg);
@@ -588,8 +721,6 @@ public class Player : StatsUnit
         currentRecoilKickback = Mathf.Clamp(currentRecoilKickback + weaponDef.recoilStrengthHorizontal, 0f, weaponDef.recoilStrengthHorizontal * maxRecoilKickbackStacks);
         currentRecoilRotation = Mathf.Clamp(currentRecoilRotation + weaponDef.recoilStrengthVertical, 0f, maxRecoilAngleDegrees);
 
-        // Spray tracking: shots fired close together count as one continuous burst, and the
-        // bonus spread ramps up the longer that burst goes on (0 bonus on the first shot of a burst).
         bool isSpraying = (Time.time - lastShotTime) <= sprayHoldWindow;
         consecutiveShotsFired = isSpraying ? consecutiveShotsFired + 1 : 1;
         lastShotTime = Time.time;
