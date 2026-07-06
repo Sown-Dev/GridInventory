@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Ligofff.CustomSOIcons;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewItemDefinition", menuName = "Inventory/Item Definition")]
@@ -10,6 +11,8 @@ public class ItemDefinition : ScriptableObject
     public int sizeX=1;
     public int sizeY=1;
     public int maxAmount=1;
+    
+    [CustomAssetIcon]
     public Sprite icon;
     
     public List<ComponentDefinition> componentDefinitions;
@@ -39,7 +42,7 @@ public class ItemDefinition : ScriptableObject
                     continue;
                 }
 
-                ItemComponent component = componentDefinition.GenerateComponentS();
+                ItemComponent component = componentDefinition.GenerateComponents(item);
                 if (component != null)
                 {
                     components.Add(component);

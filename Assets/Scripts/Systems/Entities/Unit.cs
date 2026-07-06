@@ -2,7 +2,7 @@
     using DefaultNamespace;
     using UnityEngine;
 
-    public class Unit: Damagable
+    public class Unit: Damageable
     {
         public Rigidbody2D rb;
         

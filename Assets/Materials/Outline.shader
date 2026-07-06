@@ -5,18 +5,22 @@ Shader "Custom/UniformOutline"
         _MainTex ("Texture", 2D) = "white" {}
         _OutlineColor ("Outline Color", Color) = (0,0,0,1)
         _AddColor ("Add Color", Color) = (0,0,0,0)
-        _OutlineThickness ("Outline Thickness", Float) = 1.0
-        // Assuming a uniform Pixels Per Unit for illustration purposes
-        _PixelsPerUnit ("Pixels Per Unit", Float) = 100.0
+        _OutlineThickness ("Outline Thickness", Float) = 0.0 // Default to 0
         _AlphaThreshold ("Alpha Threshold", Range(0, 1)) = 0.01
     }
     SubShader
     {
-        Tags { "Queue"="Transparent" "RenderType"="Transparent" }
+        Tags 
+        { 
+            "Queue"="Transparent" 
+            "RenderType"="Transparent" 
+            "CanUseSpriteAtlas"="True" 
+        }
         LOD 100
 
         Blend SrcAlpha OneMinusSrcAlpha
         ZWrite Off
+        Cull Off
 
         Pass
         {
@@ -25,6 +29,9 @@ Shader "Custom/UniformOutline"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            
+            // Required for ddx/ddy support
+            #pragma target 3.0 
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
@@ -45,7 +52,6 @@ Shader "Custom/UniformOutline"
             sampler2D _MainTex;
             float4 _OutlineColor;
             float _OutlineThickness;
-            float _PixelsPerUnit;
             float4 _AddColor;
             float _AlphaThreshold;
 
@@ -61,57 +67,48 @@ Shader "Custom/UniformOutline"
 
             float4 frag(v2f i) : SV_Target
             {
-                // Adjust outline thickness relative to the sprite's size in the world
-                float thickness = _OutlineThickness / _PixelsPerUnit;
-
-                // Sample the texture
                 float4 texColor = tex2D(_MainTex, i.uv);
                 float maxAlpha = texColor.a;
 
                 texColor.rgb += _AddColor.rgb;
+                texColor.rgb = saturate(texColor.rgb);
 
-                // Ensure we don't go below zero in any channel
-                texColor.rgb = max(texColor.rgb, 0);
-                texColor.rgb = min(texColor.rgb, 1);
-
-                // Check if current pixel is part of sprite (any alpha above threshold)
                 bool isCurrentPixelSprite = texColor.a > _AlphaThreshold;
-                
-                // Examining surrounding pixels - treat any pixel with alpha > threshold as sprite
                 bool hasNeighborSprite = false;
-                for (int y = -1; y <= 1; y++)
+                
+                // Get the UV change per 1 screen pixel
+                float2 dx = ddx(i.uv) * _OutlineThickness;
+                float2 dy = ddy(i.uv) * _OutlineThickness;
+
+                float2 offsets[8] = {
+                    float2(-1, -1), float2(0, -1), float2(1, -1),
+                    float2(-1,  0),                float2(1,  0),
+                    float2(-1,  1), float2(0,  1), float2(1,  1)
+                };
+
+                for (int j = 0; j < 8; j++)
                 {
-                    for (int x = -1; x <= 1; x++)
+                    float2 uvOffset = dx * offsets[j].x + dy * offsets[j].y;
+                    float neighborAlpha = tex2D(_MainTex, i.uv + uvOffset).a;
+                    
+                    if (neighborAlpha > _AlphaThreshold)
                     {
-                        float2 offset = thickness * float2(x, y);
-                        float neighborAlpha = tex2D(_MainTex, i.uv + offset).a;
-                        
-                        // If any neighbor has alpha above threshold, mark as having sprite neighbor
-                        if (neighborAlpha > _AlphaThreshold)
-                        {
-                            hasNeighborSprite = true;
-                            maxAlpha = max(maxAlpha, 1.0);
-                        }
+                        hasNeighborSprite = true;
+                        maxAlpha = max(maxAlpha, 1.0);
                     }
                 }
 
-                // Draw outline if:
-                // 1. Current pixel is transparent/empty AND has sprite neighbors (external outline)
-                // 2. Current pixel is sprite but has non-sprite neighbors (internal outline edge)
-                bool shouldDrawOutline = (!isCurrentPixelSprite && hasNeighborSprite);
+                // Only draw outline if thickness is greater than 0
+                bool shouldDrawOutline = (!isCurrentPixelSprite && hasNeighborSprite) && (_OutlineThickness > 0.0);
                 
-                float4 outlineColor = _OutlineColor;
-                outlineColor.a = shouldDrawOutline ? 1.0 : 0.0;
-                
-                // If we're drawing outline, use outline color (always solid), otherwise use sprite color with alpha
                 float4 finalColor;
                 if (shouldDrawOutline)
                 {
-                    finalColor = outlineColor; // Outline is always solid, not affected by sprite alpha
+                    finalColor = _OutlineColor;
                 }
                 else
                 {
-                    finalColor = texColor * i.color; // Apply sprite renderer's color/alpha only to the sprite
+                    finalColor = texColor * i.color;
                 }
                 
                 return finalColor;

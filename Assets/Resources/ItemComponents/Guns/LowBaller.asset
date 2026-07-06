@@ -17,11 +17,17 @@ MonoBehaviour:
   maxDurability: 700
   MagSize: 7
   baseDamage: 25
-  baseFireRate: 200
+  baseFireRate: 300
   fireMode: 0
-  spreadDegrees: 6
-  recoilStrength: 6
-  recoilRecovery: 2
+  baseSpreadDegrees: 1
+  maxSpreadDegrees: 18
+  spreadPerShot: 3
+  spraySpreadBonusPerShot: 0.5
+  spreadRecoverySpeed: 3
+  recoilStrengthVertical: 18
+  recoilStrengthHorizontal: 2
+  recoilRecovery: 1.25
+  reloadDuration: 2
   Upgrades:
     inv: []
     sizeX: 2

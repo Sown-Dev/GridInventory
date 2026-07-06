@@ -9,7 +9,7 @@ public enum Statstype{
     //Core
     
     MaxHealth = 1,
-    Armor = 2,
+    Defense = 2,
     InventoryRows = 3,
     
     //Movement

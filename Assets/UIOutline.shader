@@ -6,8 +6,7 @@
         _Color ("Tint", Color) = (1,1,1,1)
         _OutlineColor ("Outline Color", Color) = (0,0,0,1)
         _AddColor ("Add Color", Color) = (0,0,0,0)
-        _OutlineThickness ("Outline Thickness", Float) = 1.0
-        _PixelsPerUnit ("Pixels Per Unit", Float) = 100.0
+        _OutlineThickness ("Outline Thickness (Screen Pixels)", Float) = 1.0
         _AlphaThreshold ("Alpha Threshold", Range(0, 1)) = 0.01
         
         // UI specific properties
@@ -55,7 +54,9 @@
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 2.0
+            
+            // Upgraded to 3.0 for ddx/ddy support
+            #pragma target 3.0
 
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
@@ -89,10 +90,8 @@
             float _UIMaskSoftnessX;
             float _UIMaskSoftnessY;
 
-            // Outline properties
             float4 _OutlineColor;
             float _OutlineThickness;
-            float _PixelsPerUnit;
             float4 _AddColor;
             float _AlphaThreshold;
 
@@ -119,41 +118,41 @@
 
             float4 frag(v2f IN) : SV_Target
             {
-                // Calculate outline thickness in UV space
-                float thickness = _OutlineThickness / _PixelsPerUnit;
-                
-                // Sample the main texture
                 float4 color = tex2D(_MainTex, IN.texcoord) + _TextureSampleAdd;
                 float maxAlpha = color.a;
 
-                // Apply add color
                 color.rgb += _AddColor.rgb;
                 color.rgb = saturate(color.rgb);
 
-                // Check if current pixel is part of sprite
                 bool isCurrentPixelSprite = color.a > _AlphaThreshold;
-                
-                // Check surrounding pixels for outline
                 bool hasNeighborSprite = false;
-                for (int y = -1; y <= 1; y++)
+                
+                // ddx/ddy get the exact UV change per 1 screen pixel
+                float2 dx = ddx(IN.texcoord) * _OutlineThickness;
+                float2 dy = ddy(IN.texcoord) * _OutlineThickness;
+
+                // 8-way directional array
+                float2 offsets[8] = {
+                    float2(-1, -1), float2(0, -1), float2(1, -1),
+                    float2(-1,  0),                float2(1,  0),
+                    float2(-1,  1), float2(0,  1), float2(1,  1)
+                };
+
+                // Check surrounding pixels in uniform screen space
+                for (int i = 0; i < 8; i++)
                 {
-                    for (int x = -1; x <= 1; x++)
+                    float2 uvOffset = dx * offsets[i].x + dy * offsets[i].y;
+                    float neighborAlpha = tex2D(_MainTex, IN.texcoord + uvOffset).a;
+                    
+                    if (neighborAlpha > _AlphaThreshold)
                     {
-                        float2 offset = thickness * float2(x, y);
-                        float neighborAlpha = tex2D(_MainTex, IN.texcoord + offset).a;
-                        
-                        if (neighborAlpha > _AlphaThreshold)
-                        {
-                            hasNeighborSprite = true;
-                            maxAlpha = max(maxAlpha, 1.0);
-                        }
+                        hasNeighborSprite = true;
+                        maxAlpha = max(maxAlpha, 1.0);
                     }
                 }
 
-                // Determine if we should draw outline
                 bool shouldDrawOutline = (!isCurrentPixelSprite && hasNeighborSprite);
                 
-                // Calculate final color
                 float4 finalColor;
                 if (shouldDrawOutline)
                 {
@@ -164,13 +163,11 @@
                     finalColor = color * IN.color;
                 }
 
-                // Apply UI masking
                 #ifdef UNITY_UI_CLIP_RECT
                 float2 m = saturate((_ClipRect.zw - _ClipRect.xy - abs(IN.mask.xy)) * IN.mask.zw);
                 finalColor.a *= m.x * m.y;
                 #endif
 
-                // Apply alpha clipping if enabled
                 #ifdef UNITY_UI_ALPHACLIP
                 clip (finalColor.a - 0.001);
                 #endif

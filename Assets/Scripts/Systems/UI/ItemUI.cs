@@ -9,6 +9,7 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     public RectTransform RectTransform { get; private set; }
 
     private ItemData item;
+    private ItemData subscribedItem;
     private IItemContainerUI sourceContainer;
     private IItemContainerUI currentDropTarget;
     private GridInventoryUI gridUI;
@@ -44,11 +45,20 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         }
     }
 
+    void OnDestroy()
+    {
+        UnsubscribeFromItem();
+    }
+
     public void Init(ItemData item, IItemContainerUI container, GridInventoryUI gridUI = null)
     {
+        UnsubscribeFromItem();
+
         this.item   = item;
         this.sourceContainer = container;
         this.gridUI = gridUI ?? container as GridInventoryUI;
+
+        SubscribeToItem(item);
 
         ItemDefinition def = Registry.instance != null
             ? Registry.instance.ByID(item.itemID)
@@ -70,6 +80,30 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         UpdateVisuals();
     }
 
+    private void SubscribeToItem(ItemData newItem)
+    {
+        if (newItem == null) return;
+        newItem.OnChanged += HandleItemChanged;
+        subscribedItem = newItem;
+    }
+
+    private void UnsubscribeFromItem()
+    {
+        if (subscribedItem != null)
+        {
+            subscribedItem.OnChanged -= HandleItemChanged;
+        }
+        subscribedItem = null;
+    }
+
+    private void HandleItemChanged()
+    {
+        // Guard against the object being flagged for destruction
+        // but not yet torn down (can happen mid-frame).
+        if (this == null || !gameObject) return;
+        UpdateVisuals();
+    }
+
     void Update()
     {
         if (!isDragging) return;
@@ -86,15 +120,30 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
     void UpdateVisuals()
     {
+        // Resolve the container fresh every call. sourceContainer is nulled at
+        // the end of OnEndDrag, but in practice both GridInventoryUI and
+        // InventorySlotUI destroy/recreate their ItemUI on RefreshView, so a
+        // surviving instance always has a valid sourceContainer set by Init.
+        // This fallback just protects against future container types that
+        // might not follow that pattern.
+        IItemContainerUI currentContainer = gridUI != null
+            ? gridUI
+            : (sourceContainer ?? ItemContainerUIUtility.ResolveContainerInParents(transform.parent));
+
         if (gridUI != null)
         {
             int w = item.rotated ? item.sizeY : item.sizeX;
             int h = item.rotated ? item.sizeX : item.sizeY;
-            RectTransform.sizeDelta = new Vector2(w * gridUI.cellSize, h * gridUI.cellSize);
+            SetExplicitSize(new Vector2(w * gridUI.cellSize, h * gridUI.cellSize));
+        }
+        else if (currentContainer?.ContainerRect != null)
+        {
+            SetExplicitSize(currentContainer.ContainerRect.rect.size);
         }
         else if (itemIcon != null)
         {
-            RectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
+            // Fallback for edge cases (e.g. not yet parented to any container)
+            SetExplicitSize(itemIcon.rectTransform.sizeDelta);
         }
 
         if (itemIcon != null)
@@ -108,26 +157,42 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         {
             stackAmount.text = item.amount > 1 ? item.amount.ToString() : string.Empty;
         }
-        
-        if(item.HasComponent<GunItemComponent>())
+
+        if (item.HasComponent<GunItemComponent>())
         {
-            weaponText.text = item.GetComponent<GunItemComponent>().AmmoCount() + "/" +item.GetComponent<GunItemComponent>().MagSize();
+            weaponText.text = item.GetComponent<GunItemComponent>().AmmoCount() + "/" + item.GetComponent<GunItemComponent>().MagSize();
         }
         else
         {
             weaponText.text = "";
         }
 
-        if(item.HasComponent<DurabilityItemComponent>())
+        if (item.HasComponent<DurabilityItemComponent>())
         {
-            durabilityBar.enabled  = true; 
+            durabilityBar.enabled = true;
             durabilityBar.fillAmount = (float)item.GetComponent<DurabilityItemComponent>().durability / (float)item.GetComponent<DurabilityItemComponent>().maxDurability;
-            durabilityBar.color = Color.Lerp(Color.red, new Color( 0.5f, 0.8f,0.5f), durabilityBar.fillAmount);
+            durabilityBar.color = Color.Lerp(Color.red, new Color(0.5f, 0.8f, 0.5f), durabilityBar.fillAmount);
         }
         else
         {
             durabilityBar.enabled = false;
         }
+    }
+
+    private void SetExplicitSize(Vector2 size)
+    {
+        RectTransform.anchorMin = new Vector2(0, 1);
+        RectTransform.anchorMax = new Vector2(0, 1);
+        RectTransform.pivot     = new Vector2(0, 1);
+        RectTransform.sizeDelta = size;
+
+        if (gridUI == null)
+        {
+            // Slot case: item should sit flush at the container's origin.
+            RectTransform.anchoredPosition = Vector2.zero;
+        }
+        // Grid case: leave anchoredPosition alone — SnapToGrid already
+        // sets it explicitly based on item.posX/posY.
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -156,7 +221,7 @@ public class ItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
     private void ShowTooltip()
     {
-        TooltipManager.Instance.ShowItem(item, RectTransform.position, gameObject, useOffset:true, useWorldSpace: false);
+        TooltipManager.Instance.ShowItem(item, RectTransform.position, gameObject, useOffset: true, useWorldSpace: false);
     }
 
     private void HideTooltip()

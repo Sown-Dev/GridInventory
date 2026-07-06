@@ -93,7 +93,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         }
     }
 
-    public void BindInventory(Inventory newInventory)
+    public void BindInventory(Inventory newInventory, bool rebuildRT = true)
     {
         if (inventory == newInventory && cellHighlights != null)
         {
@@ -102,6 +102,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
         inventory = newInventory;
         RebuildView();
+        GetComponent<RectTransform>().sizeDelta = new Vector2(cellSize * inventory.sizeX, cellSize * inventory.sizeY);
     }
 
     public void RebuildView()

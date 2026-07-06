@@ -9,6 +9,10 @@ public class Projectile : MonoBehaviour
     
     public Faction faction;
 
+    public GameObject trailChild;
+
+    public GameObject impactEffectPrefab;
+
     void Awake()
     {
         // Grab the Rigidbody2D reference as soon as the object is created
@@ -40,14 +44,36 @@ public class Projectile : MonoBehaviour
         
     }
 
-    void OnTriggerEnter2D(Collider2D collision)
+    void OnCollisionEnter2D(Collision2D collision)
     {
-        Debug.Log($"Projectile collided with {collision.gameObject.name}");
-        if (collision.gameObject.GetComponent<IDamageable>() != null)
+        // 1. Instantly kill physics so the bullet cannot bounce, slide, or deflect
+        GetComponent<Rigidbody2D>().linearVelocity = Vector2.zero;
+        GetComponent<Collider2D>().enabled = false;
+
+        // 2. Handle your damage
+        if (collision.gameObject.TryGetComponent<IDamageable>(out var damageable))
         {
-            collision.gameObject.GetComponent<IDamageable>().TakeDamage(damage);
+            damageable.TakeDamage(damage);
         }
 
+        // 3. Get the perfect normal and hit point natively from the collision
+        ContactPoint2D contact = collision.GetContact(0);
+
+        // 4. Spawn the impact effect facing away from the wall
+        GameObject impactGO = Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
+        //impactGO.transform.up = contact.normal;
+
+        // 5. Use your existing method to snap the trail to the exact hit point and destroy
+        DestroyProjectile();
+    }
+    
+    public void DestroyProjectile()
+    {
+        //ensures we see the bullet trail after impact
+        trailChild.transform.parent = null; 
+        trailChild.transform.position = transform.position;
+        Destroy(trailChild, 2f);
         Destroy(gameObject);
+        
     }
 }

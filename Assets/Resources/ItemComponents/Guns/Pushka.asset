@@ -15,13 +15,19 @@ MonoBehaviour:
   ID: -1269054231
   assetGuid: 8fd7d7d8b518a634c893a4a11de7ec81
   maxDurability: 200
-  MagSize: 17
-  baseDamage: 10
-  baseFireRate: 800
+  MagSize: 15
+  baseDamage: 11
+  baseFireRate: 450
   fireMode: 1
-  spreadDegrees: 6
-  recoilStrength: 2
-  recoilRecovery: 1
+  baseSpreadDegrees: 4
+  maxSpreadDegrees: 22
+  spreadPerShot: 2
+  spraySpreadBonusPerShot: 0.4
+  spreadRecoverySpeed: 6
+  recoilStrengthVertical: 4
+  recoilStrengthHorizontal: 2.5
+  recoilRecovery: 0.5
+  reloadDuration: 2
   Upgrades:
     inv: []
     sizeX: 2

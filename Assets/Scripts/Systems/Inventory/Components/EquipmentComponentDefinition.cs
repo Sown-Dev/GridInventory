@@ -13,13 +13,14 @@ public class EquipmentComponentDefinition :  DurabilityComponentDefinition
     
     public Stats stats;
     
-    public override ItemComponent GenerateComponentS()
+    public override ItemComponent GenerateComponents(ItemData itemData)
     {
         return new EquipmentItemComponent
         {
             definitionID = ID,
             durability = RandomDurability(),
             maxDurability = maxDurability,
+            myItemData = itemData
         };
     }
 }

@@ -17,7 +17,7 @@ MonoBehaviour:
   value: 30
   sizeX: 1
   sizeY: 1
-  maxAmount: 60
+  maxAmount: 120
   icon: {fileID: 21300000, guid: 06c9a150c3783d243a2b86193d637d3f, type: 3}
   componentDefinitions: []
   description: A very common ammunition

@@ -57,6 +57,41 @@ public class Inventory
         }
         return null;
     }
+    public int CountItem(int itemID)
+    {
+        int total = 0;
+        foreach (ItemData item in inv)
+            if (item.itemID == itemID) total += item.amount;
+        return total;
+    }
+
+    public int ConsumeItem(int itemID, int amountRequested)
+    {
+        if (amountRequested <= 0) return 0;
+        int remaining = amountRequested;
+        List<ItemData> toRemove = null;
+
+        foreach (ItemData item in inv)
+        {
+            if (remaining <= 0) break;
+            if (item.itemID != itemID) continue;
+
+            int take = Mathf.Min(item.amount, remaining);
+            item.amount -= take;
+            remaining -= take;
+
+            if (item.amount <= 0)
+            {
+                toRemove ??= new List<ItemData>();
+                toRemove.Add(item);
+            }
+        }
+
+        if (toRemove != null)
+            foreach (ItemData dead in toRemove) inv.Remove(dead);
+
+        return amountRequested - remaining;
+    }
 
     public bool TryPlaceWithStacking(ItemData item)
     {

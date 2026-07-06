@@ -2,6 +2,7 @@ using UnityEngine;
 
 public interface IItemContainerUI
 {
+    RectTransform ContainerRect { get; }
     bool ContainsScreenPoint(Vector2 screenPosition);
     bool TryRemoveItem(ItemData item);
     bool CanAcceptItem(ItemData item, Vector2 screenPosition);

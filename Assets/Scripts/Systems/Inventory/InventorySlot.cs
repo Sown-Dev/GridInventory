@@ -14,6 +14,8 @@ using Unity.VisualScripting;
 
         public int maxStackSize = -1;
         
+        
+        
         public virtual bool canInsert(ItemData item)
         {
             return myItem == null;

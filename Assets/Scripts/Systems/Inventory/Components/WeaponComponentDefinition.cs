@@ -2,6 +2,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 
 [CreateAssetMenu(fileName = "Gun", menuName = "Inventory/Weapon Component")]
@@ -14,15 +15,23 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
     
     
     public WeaponFireMode fireMode = WeaponFireMode.Semi;
-    public float spreadDegrees = 6f;
+    public float baseSpreadDegrees = 20f;            // hard cap on total spread cone
+    public float maxSpreadDegrees = 20f;   // ceiling spread can build up to under sustained fire
+    public float spreadPerShot = 3f;             // degrees added to spread on every shot fired
+    public float spraySpreadBonusPerShot = 0.4f; // EXTRA degrees per shot, scaling with how long you've been spraying
+    public float spreadRecoverySpeed = 6f;       // degrees/sec spread decays once you stop firing (separate from recoilRecovery)
     public float recoilStrengthVertical = 1f;    // drives upward/angular kick (the arc/climb)
     public float recoilStrengthHorizontal = 1f;  // drives outward kickback (away from player, along aim line)
     public float recoilRecovery = 1f;            // still shared — how fast both settle back down// scales how fast kickback/rotation/spread settle back down
+    
+    
+    public float reloadDuration = 2f;
+    
     public Inventory Upgrades;
 
     public int[] CompatibleAmmo;
 
-    public override ItemComponent GenerateComponentS()
+    public override ItemComponent GenerateComponents(ItemData itemData)
     {
         return new GunItemComponent
         {
@@ -32,26 +41,9 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
             ammoSlot= new InventorySlot
             {
                 maxStackSize = MagSize
-            }
+            },
+            myItemData= itemData
         };
     }
 }
 
-public class DurabilityComponentDefinition : ComponentDefinition
-{
-    public int maxDurability;
-
-    public override ItemComponent GenerateComponentS()
-    {
-        return new DurabilityItemComponent
-        {
-            definitionID = ID,
-            durability = maxDurability,
-            maxDurability = maxDurability
-        };
-    }
-    public int RandomDurability()
-    {
-        return UnityEngine.Random.Range(maxDurability/2, maxDurability);
-    }
-}

@@ -10,7 +10,9 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
     
     [SerializeField] private Image backgroundImage;
     
-    [SerializeField] private bool flipOnInsert = false;
+    [SerializeField] private bool overrideRotation = false;
+    [SerializeField] private bool rotationOverrideValue = false;
+    [SerializeField] private bool updateConstantly = false;
 
     [Header("Preview Colors")]
     [SerializeField] private Color defaultColor = new Color(1f, 1f, 1f, 0f);
@@ -18,13 +20,12 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
     [SerializeField] private Color invalidColor = new Color(1f, 0f, 0f, 0.3f);
     [SerializeField] private Color specialColor = new Color(1f, 0.9f, 0f, 0.35f);
 
+    
     protected InventorySlot slot = new InventorySlot();
     private ItemUI currentItemUI;
 
     public RectTransform ContainerRect => slotRoot != null ? slotRoot : transform as RectTransform;
 
-
-    private RectTransform myRt;
     protected virtual void Awake()
     {
         if (slotRoot == null)
@@ -36,17 +37,25 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
         {
             itemRoot = slotRoot;
         }
-        myRt=GetComponent<RectTransform>();
     }
 
     protected virtual void OnEnable()
     {
         RefreshView();
     }
+
+    protected virtual void Update()
+    {
+        if (updateConstantly && overrideRotation && slot.myItem != null)
+        {
+            ApplyRotationOverride(slot.myItem);
+        }
+    }
     
     public void BindSlot(InventorySlot slot)
     {
         this.slot = slot;
+        ApplyRotationOverride(this.slot.myItem);
         RefreshView();
     }
 
@@ -115,7 +124,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool TryPlaceItem(ItemData item, Vector2 screenPosition)
     {
-        item.rotated = flipOnInsert || item.rotated;
+       
         if (!ContainsScreenPoint(screenPosition))
         {
             return false;
@@ -132,7 +141,13 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             return false;
         }
 
-        return slot.Insert(item);
+        if (slot.Insert(item))
+        {
+            ApplyRotationOverride(item);
+            return true;
+        }
+
+        return false;
     }
 
     public virtual bool TrySwapItem(ItemData item, IItemContainerUI sourceContainer)
@@ -152,11 +167,13 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             {
                 if (sourceContainer.TryRestoreItem(displacedItem))
                 {
+                    ApplyRotationOverride(item);
                     return true;
                 }
 
                 if (sourceContainer is GridInventoryUI gridInventoryUI && gridInventoryUI.TryPlaceItemAnywhere(displacedItem))
                 {
+                    ApplyRotationOverride(item);
                     return true;
                 }
             }
@@ -176,7 +193,13 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             return false;
         }
 
-        return slot.Insert(item);
+        if (slot.Insert(item))
+        {
+            ApplyRotationOverride(item);
+            return true;
+        }
+
+        return false;
     }
 
     public virtual void RefreshView()
@@ -198,13 +221,12 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
         if (currentItemUI != null)
         {
+            // ItemUI.Init -> UpdateVisuals owns all of this ItemUI's RectTransform
+            // sizing/anchoring (via ContainerRect) — don't set it here too, or the
+            // two will fight and desync the moment UpdateVisuals runs again later
+            // from an ItemData.OnChanged event (e.g. firing a weapon) without a
+            // matching RefreshView call.
             currentItemUI.Init(slot.myItem, this, null);
-            RectTransform rt = currentItemUI.RectTransform;
-            rt.sizeDelta = myRt.sizeDelta;
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
         }
 
        
@@ -232,5 +254,17 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
     {
         return item != null && slot.myItem != null && slot.CanInsertIfEmpty(item) && !CanLoadAmmoIntoWeapon(item);
     }
-}
 
+    private void ApplyRotationOverride(ItemData item)
+    {
+        if (!overrideRotation || item == null)
+        {
+            return;
+        }
+
+        if (item.rotated != rotationOverrideValue)
+        {
+            item.rotated = rotationOverrideValue;
+        }
+    }
+}

@@ -16,6 +16,8 @@ public class ItemData
 
     public ItemComponent[] Components;
     
+    public Action OnChanged;
+    
     public virtual T GetComponent<T>() where T : ItemComponent
     {
         if (Components == null) return null;
@@ -56,6 +58,18 @@ public class ItemData
     public Sprite GetIcon()
     {
         return Registry.instance.ByID(itemID).icon;
+    }
+    
+    public void InvokeOnChanged()
+    {
+        try
+        {
+            OnChanged?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error invoking OnChanged for item {GetName()}: {e}");
+        }
     }
 }
 
