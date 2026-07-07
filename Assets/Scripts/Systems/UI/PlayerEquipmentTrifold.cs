@@ -14,9 +14,9 @@ namespace DefaultNamespace.Systems.UI
         
         public Player Player;
 
-        private void Awake()
+        private void Start()
         {
-            Initialize();
+           // Initialize();
         }
 
         public void Initialize()

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using DefaultNamespace.Systems.UI;
 using Unity.Properties;
 using Unity.Serialization.Json;
 using UnityEngine;
@@ -41,6 +42,9 @@ public class Player : StatsUnit
     public Collider2D playerCollider;
     public Inventory Inventory;
 
+    public PlayerEquipmentTrifold equipmentUI;
+    public PlayerInventoryUI playerInventoryUI;
+    
     int accessorySlotCount = 2;
 
     public EquipmentSlot HelmetSlot = new EquipmentSlot(EquipmentType.Helmet);
@@ -122,7 +126,6 @@ public class Player : StatsUnit
         // real inventory populated in Awake, and this would otherwise stomp it.
         if (!loadedFromSave)
         {
-            InitializeInventoryForTesting();
         }
     }
 
@@ -134,8 +137,9 @@ public class Player : StatsUnit
         WeaponSlot2.OnChanged -= OnEquipmentChanged;
     }
 
-    public void Update()
+    public override void Update()
     {
+        base.Update();
         moveInput = Input.GetAxisRaw("Horizontal");
 
         if (Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space))
@@ -229,6 +233,9 @@ public class Player : StatsUnit
 
         ApplyLoadedData(data);
         loadedFromSave = true;
+        
+        equipmentUI?.Initialize();
+        
     }
 
     private void ApplyLoadedData(PlayerSaveData data)
@@ -236,11 +243,14 @@ public class Player : StatsUnit
         transform.position = new Vector3(data.posX, data.posY, data.posZ);
 
         Inventory = data.inventory ?? new Inventory();
+        Inventory.RemoveEmptyStacks();
 
         HelmetSlot.myItem = data.helmetItem;
         ChestSlot.myItem = data.chestItem;
         WeaponSlot1.myItem = data.weaponSlot1Item;
         WeaponSlot2.myItem = data.weaponSlot2Item;
+
+        NormalizeEquipmentSlots();
 
         // Bypasses EquipSlot's "already equipped, no-op" guard since EquippedSlot starts null
         // here regardless of what was saved.
@@ -258,11 +268,16 @@ public class Player : StatsUnit
     private void InitializeNewGame()
     {
         // No new-game setup needed yet beyond leaving the player at its scene-placed position.
+        InitializeInventoryForTesting();
+
         // Future new-game defaults (starting inventory, stats, etc.) go here.
     }
 
     public void SaveGame()
     {
+        Inventory?.RemoveEmptyStacks();
+        NormalizeEquipmentSlots();
+
         int equippedIndex = 0;
         if (EquippedSlot == WeaponSlot1) equippedIndex = 1;
         else if (EquippedSlot == WeaponSlot2) equippedIndex = 2;
@@ -285,10 +300,24 @@ public class Player : StatsUnit
         try
         {
             File.WriteAllText(SaveFilePath, json);
+            Debug.Log($"Player saved to {SaveFilePath}");
         }
         catch (Exception e)
         {
             Debug.LogError($"Failed to write save file: {e}");
+        }
+    }
+
+    private void NormalizeEquipmentSlots()
+    {
+        if (HelmetSlot != null && HelmetSlot.IsEmpty()) HelmetSlot.myItem = null;
+        if (ChestSlot != null && ChestSlot.IsEmpty()) ChestSlot.myItem = null;
+        if (WeaponSlot1 != null && WeaponSlot1.IsEmpty()) WeaponSlot1.myItem = null;
+        if (WeaponSlot2 != null && WeaponSlot2.IsEmpty()) WeaponSlot2.myItem = null;
+
+        if (EquippedSlot != null && EquippedSlot.IsEmpty())
+        {
+            EquippedSlot = null;
         }
     }
 
@@ -338,6 +367,7 @@ public class Player : StatsUnit
 
         finalStats.Combine(HelmetSlot.GetDefinition()?.stats);
         finalStats.Combine(ChestSlot.GetDefinition()?.stats);
+        finalStats.Combine(WeaponSlot1.GetDefinition()?.stats);
         ApplyStats();
     }
 
@@ -760,7 +790,14 @@ public class Player : StatsUnit
         InitializeInventorySetup();
         PopulateInventoryWithTestItems();
     }
+    
+    [ContextMenu("Clear Inventory")]
+    private void ClearInventory()
+    {
+        Inventory.inv = new List<ItemData>();
+    }
 
+    [ContextMenu("Initialize Inventory Setup")] 
     private void InitializeInventorySetup()
     {
         Inventory ??= new Inventory();
@@ -807,7 +844,10 @@ public class Player : StatsUnit
         Inventory.sizeX = widthLimit;
         Inventory.sizeY = requiredHeight;
     }
+    
+    
 
+    [ContextMenu("Populate Inventory With Test Items")]
     private void PopulateInventoryWithTestItems()
     {
         if (Inventory == null) return;

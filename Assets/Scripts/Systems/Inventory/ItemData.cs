@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Unity.Properties;
+using Unity.Serialization;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -17,10 +19,12 @@ public class ItemData
     public int itemID;
     public double value;
 
+    public bool HasPositiveAmount => amount > 0;
+
     [SerializeReference]
     public ItemComponent[] Components;
-    
-    [DoNotSerialize]
+
+    [DoNotSerialize, JsonIgnore, DontSerialize]
     public Action OnChanged;
     
     public virtual T GetComponent<T>() where T : ItemComponent

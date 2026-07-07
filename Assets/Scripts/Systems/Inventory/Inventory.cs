@@ -11,8 +11,24 @@ public class Inventory
     public int sizeX;
     public int sizeY;
 
+    public void RemoveEmptyStacks()
+    {
+        if (inv == null)
+        {
+            inv = new List<ItemData>();
+            return;
+        }
+
+        inv.RemoveAll(item => item == null || item.amount <= 0);
+    }
+
     public bool CanPlace(ItemData item)
     {
+        if (item == null || item.amount <= 0)
+        {
+            return false;
+        }
+
         int w = item.rotated ? item.sizeY : item.sizeX;
         int h = item.rotated ? item.sizeX : item.sizeY;
 
@@ -21,6 +37,11 @@ public class Inventory
 
         foreach (ItemData other in inv)
         {
+            if (other == null || other.amount <= 0)
+            {
+                continue;
+            }
+
             int ow = other.rotated ? other.sizeY : other.sizeX;
             int oh = other.rotated ? other.sizeX : other.sizeY;
 
@@ -50,6 +71,11 @@ public class Inventory
     {
         foreach (ItemData item in inv)
         {
+            if (item == null || item.amount <= 0)
+            {
+                continue;
+            }
+
             int w = item.rotated ? item.sizeY : item.sizeX;
             int h = item.rotated ? item.sizeX : item.sizeY;
 
@@ -63,7 +89,7 @@ public class Inventory
     {
         int total = 0;
         foreach (ItemData item in inv)
-            if (item.itemID == itemID) total += item.amount;
+            if (item != null && item.amount > 0 && item.itemID == itemID) total += item.amount;
         return total;
     }
 
@@ -76,11 +102,13 @@ public class Inventory
         foreach (ItemData item in inv)
         {
             if (remaining <= 0) break;
-            if (item.itemID != itemID) continue;
+            if (item == null || item.amount <= 0 || item.itemID != itemID) continue;
 
             int take = Mathf.Min(item.amount, remaining);
             item.amount -= take;
             remaining -= take;
+
+            item.InvokeOnChanged();
 
             if (item.amount <= 0)
             {
@@ -97,6 +125,13 @@ public class Inventory
 
     public bool TryPlaceWithStacking(ItemData item)
     {
+        if (item == null || item.amount <= 0)
+        {
+            return false;
+        }
+
+        RemoveEmptyStacks();
+
         ItemDefinition def = Registry.instance.ByID(item.itemID);
         if (def == null)
         {
@@ -106,7 +141,7 @@ public class Inventory
         ItemData existingStack = null;
         foreach (ItemData other in inv)
         {
-            if (other.itemID == item.itemID)
+            if (other != null && other.amount > 0 && other.itemID == item.itemID)
             {
                 existingStack = other;
                 break;
@@ -119,11 +154,20 @@ public class Inventory
             if (totalAmount <= def.maxAmount)
             {
                 existingStack.amount = totalAmount;
+                if (existingStack.amount <= 0)
+                {
+                    inv.Remove(existingStack);
+                    existingStack.InvokeOnChanged();
+                    return true;
+                }
+
+                existingStack.InvokeOnChanged();
                 return true;
             }
             else if (existingStack.amount < def.maxAmount)
             {
                 existingStack.amount = def.maxAmount;
+                existingStack.InvokeOnChanged();
                 item.amount = totalAmount - def.maxAmount;
                 return PlaceItem(item);
             }
@@ -134,6 +178,11 @@ public class Inventory
 
     public bool CanStackAt(ItemData movingItem, int x, int y)
     {
+        if (movingItem == null || movingItem.amount <= 0)
+        {
+            return false;
+        }
+
         ItemData target = GetItemAt(x, y);
         if (target == null || target == movingItem)
         {
@@ -159,6 +208,13 @@ public class Inventory
 
     public bool TryPlaceOrStackAt(ItemData item, int x, int y)
     {
+        if (item == null || item.amount <= 0)
+        {
+            return false;
+        }
+
+        RemoveEmptyStacks();
+
         int originalX = item.posX;
         int originalY = item.posY;
         int originalAmount = item.amount;
@@ -185,7 +241,9 @@ public class Inventory
                 }
 
                 target.amount += amountToMerge;
+                target.InvokeOnChanged();
                 item.amount -= amountToMerge;
+                item.InvokeOnChanged();
 
                 if (item.amount <= 0)
                 {
@@ -210,10 +268,12 @@ public class Inventory
 
     public bool TryPlaceAnywhere(ItemData item)
     {
-        if (item == null)
+        if (item == null || item.amount <= 0)
         {
             return false;
         }
+
+        RemoveEmptyStacks();
 
         int originalX = item.posX;
         int originalY = item.posY;

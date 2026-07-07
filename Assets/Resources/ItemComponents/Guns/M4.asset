@@ -19,9 +19,9 @@ MonoBehaviour:
   baseDamage: 10
   baseFireRate: 800
   fireMode: 1
-  baseSpreadDegrees: 1.5
-  maxSpreadDegrees: 12
-  spreadPerShot: 0.6
+  baseSpreadDegrees: 1.4
+  maxSpreadDegrees: 10
+  spreadPerShot: 0.4
   spraySpreadBonusPerShot: 0.2
   spreadRecoverySpeed: 4
   recoilStrengthVertical: 3
@@ -33,3 +33,6 @@ MonoBehaviour:
     sizeX: 5
     sizeY: 2
   CompatibleAmmo: 4d9af2d4
+  references:
+    version: 2
+    RefIds: []

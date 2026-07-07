@@ -31,14 +31,10 @@ public class GunItemComponent : DurabilityItemComponent
     {
         if (ammoSlot.IsEmpty())
             return false;
-        
-        if(ammoSlot.myItem.amount <= 0)
-            return false;
 
         if (!simulate)
         {
-            ammoSlot.myItem.amount--;
-            ammoSlot.OnChanged?.Invoke();
+            ammoSlot.ConsumeStack(1);
             myItemData.OnChanged?.Invoke();
         }
         return true;
@@ -192,6 +188,18 @@ public class GunItemComponent : DurabilityItemComponent
     {
         return ((WeaponComponentDefinition) GetDefinition()).MagSize;
     }
-    public int baseDamage;
-    public float fireRate;
+    public Stats CalculateGunStats()
+    {
+        WeaponComponentDefinition definition = GetDefinition<WeaponComponentDefinition>();
+        if (definition == null)
+        {
+            return new Stats();
+        }
+
+        Stats stats = (Stats)definition.baseStats.Clone();
+        //here we combine with upgrades and attachments
+        return stats;
+    }
+    
+    
 }

@@ -1,6 +1,8 @@
 
 using System;
+using Newtonsoft.Json;
 using Unity.Properties;
+using Unity.Serialization;
 using Unity.VisualScripting;
 
 [Serializable]
@@ -12,20 +14,58 @@ using Unity.VisualScripting;
         public ItemData myItem;
 
         [DoNotSerialize]
+        [JsonIgnore]
+        [DontSerialize]
         public Action OnChanged;
 
         public int maxStackSize = -1;
+
+        public bool IsItemValid(ItemData item)
+        {
+            return item != null && item.amount > 0;
+        }
+
+        public void Clear()
+        {
+            if (myItem == null)
+            {
+                return;
+            }
+
+            myItem = null;
+            OnChanged?.Invoke();
+        }
+
+        public bool ConsumeStack(int amount)
+        {
+            if (myItem == null || amount <= 0)
+            {
+                return false;
+            }
+
+            myItem.amount -= amount;
+            if (myItem.amount <= 0)
+            {
+                Clear();
+            }
+            else
+            {
+                OnChanged?.Invoke();
+            }
+
+            return true;
+        }
         
         
         
         public virtual bool canInsert(ItemData item)
         {
-            return myItem == null;
+            return IsEmpty() && IsItemValid(item);
         }
 
         public virtual bool CanInsertIfEmpty(ItemData item)
         {
-            return item != null;
+            return IsEmpty() && IsItemValid(item);
         }
         
         public virtual bool Insert(ItemData item)
@@ -40,6 +80,17 @@ using Unity.VisualScripting;
         }
         public bool IsEmpty()
         {
+            if( myItem == null)
+            {
+                return true;
+            }
+
+            if (myItem.amount <= 0)
+            {
+                myItem = null;
+                return true;
+            }
+            //ik its stupid to check twice but im just leaving it instead of returning false 
             return myItem == null || myItem.amount <= 0;
         }
         
@@ -63,7 +114,12 @@ using Unity.VisualScripting;
         
         public override bool canInsert(ItemData item)
         {
-            if (myItem != null)
+            if (!IsEmpty())
+            {
+                return false;
+            }
+
+            if (item == null || item.amount <= 0)
             {
                 return false;
             }
@@ -79,7 +135,7 @@ using Unity.VisualScripting;
 
         public override bool CanInsertIfEmpty(ItemData item)
         {
-            if (item == null)
+            if (!IsEmpty() || item == null || item.amount <= 0)
             {
                 return false;
             }

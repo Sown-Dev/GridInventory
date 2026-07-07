@@ -112,6 +112,8 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
             return;
         }
 
+        inventory.RemoveEmptyStacks();
+
         if (cellHighlights != null)
         {
             foreach (var highlight in cellHighlights)
@@ -161,6 +163,11 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
+        if (item == null || item.amount <= 0)
+        {
+            return false;
+        }
+
         if (TryGetAmmoLoadTarget(item, screenPosition, out _, out _))
         {
             return true;
@@ -223,7 +230,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public bool TryPlaceItem(ItemData item, Vector2 screenPosition)
     {
-        if (inventory == null)
+        if (inventory == null || item == null || item.amount <= 0)
         {
             return false;
         }
@@ -242,7 +249,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public bool TryRestoreItem(ItemData item)
     {
-        if (inventory == null)
+        if (inventory == null || item == null || item.amount <= 0)
         {
             return false;
         }
@@ -252,7 +259,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public bool TryPlaceItemAnywhere(ItemData item)
     {
-        return inventory != null && inventory.TryPlaceAnywhere(item);
+        return inventory != null && item != null && item.amount > 0 && inventory.TryPlaceAnywhere(item);
     }
 
     public void RefreshView()
@@ -304,6 +311,11 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public void AddItemUI(ItemData item)
     {
+        if (item == null || item.amount <= 0)
+        {
+            return;
+        }
+
         GameObject go = Instantiate(itemUIPrefab, gridPanel);
         ItemUI ui     = go.GetComponent<ItemUI>();
         ui.Init(item, this);

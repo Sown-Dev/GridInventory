@@ -1,10 +1,23 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
 
 
     public class UIManager : MonoBehaviour
     {
-        
+        public static UIManager instance;
         public GameObject gridInventoryPrefab;
+        public GameObject trifoldInventoryPrefab;
+        public void Awake()
+        {
+            if (instance != null && instance != this)
+            {
+                Destroy(this.gameObject);
+            }
+            else
+            {
+                instance = this;
+            }
+        }
         
         public GameObject GenerateInventoryUI(Inventory inventory)
         {
@@ -16,10 +29,30 @@
             return go;
         }
         
-        public GameObject OpenInventoryUITrifold(Inventory inventory)
+        [DoNotSerialize]
+        InventoryTrifold currentTrifoldInventoryUI=null;
+        
+        public void OpenInventoryUITrifold(Inventory inventory)
         {
-            GameObject go = GenerateInventoryUI(inventory);
-            go.SetActive(true);
-            return go;
+            if( currentTrifoldInventoryUI != null)
+            {
+               CloseInventoryUITrifold();
+            }
+            else
+            {
+                GameObject go = Instantiate(trifoldInventoryPrefab, transform.parent);
+                InventoryTrifold trifoldInventoryUI = go.GetComponent<InventoryTrifold>();
+                trifoldInventoryUI.BindInventory(inventory);
+                currentTrifoldInventoryUI = trifoldInventoryUI;
+            }
+            
+        }
+        public void CloseInventoryUITrifold()
+        {
+            if( currentTrifoldInventoryUI != null)
+            {
+                Destroy(currentTrifoldInventoryUI.gameObject);
+                currentTrifoldInventoryUI = null;
+            }
         }
     }

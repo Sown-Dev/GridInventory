@@ -25,7 +25,7 @@ MonoBehaviour:
   spraySpreadBonusPerShot: 0.4
   spreadRecoverySpeed: 6
   recoilStrengthVertical: 4
-  recoilStrengthHorizontal: 2.5
+  recoilStrengthHorizontal: -3.5
   recoilRecovery: 0.5
   reloadDuration: 2
   Upgrades:
@@ -33,3 +33,6 @@ MonoBehaviour:
     sizeX: 2
     sizeY: 2
   CompatibleAmmo: 7818c6ae
+  references:
+    version: 2
+    RefIds: []

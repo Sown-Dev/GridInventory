@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33abb5e68b0e48ef8d30032960523693, type: 3}
+  m_Name: MouseTrap
+  m_EditorClassIdentifier: 
+  ID: 1514657079
+  assetGuid: 9b49e6d3cc764324e9b9b23410ccdd8e
+  maxDurability: 700
+  MagSize: 5
+  baseDamage: 24
+  baseFireRate: 250
+  fireMode: 0
+  baseSpreadDegrees: 2
+  maxSpreadDegrees: 20
+  spreadPerShot: 3
+  spraySpreadBonusPerShot: 0.5
+  spreadRecoverySpeed: 2
+  recoilStrengthVertical: 35
+  recoilStrengthHorizontal: 2
+  recoilRecovery: 1.25
+  reloadDuration: 1.5
+  Upgrades:
+    inv: []
+    sizeX: 2
+    sizeY: 1
+  CompatibleAmmo: d8672633
+  references:
+    version: 2
+    RefIds: []

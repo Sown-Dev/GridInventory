@@ -26,7 +26,7 @@ public class PlayerInventoryUI : MonoBehaviour
 
     private void Update()
     {
-        BindInventory();
+        //BindInventory();
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
@@ -95,7 +95,7 @@ public class PlayerInventoryUI : MonoBehaviour
         {
             return;
         }
-
+        gridInventoryUI.RebuildView();
         SetInventoryVisible(!wholeUiCanvasGroup.interactable);
     }
 

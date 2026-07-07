@@ -3,15 +3,17 @@ using UnityEngine.Events;
 
 public class Interactable : MonoBehaviour
 {
-    public readonly UnityAction OnInteract;
+    public UnityEvent OnInteract;
+    public UnityEvent OnRangeEnter;
+    public UnityEvent OnRangeExit;
     
     [SerializeField] private SpriteRenderer sr;
+    [SerializeField] protected bool destroyOnInteract = false;
     
     private bool isOutlineActive = false;
-    
     private Material mat;
 
-    public Interactable(UnityAction onInteract)
+    public Interactable(UnityEvent onInteract)
     {
         OnInteract = onInteract;
     }
@@ -44,6 +46,7 @@ public class Interactable : MonoBehaviour
             if (!isOutlineActive)
             {
                 SetOutline(true);
+                OnRangeEnter?.Invoke();
             }
 
             if (Input.GetKeyDown(KeyCode.E))
@@ -56,13 +59,26 @@ public class Interactable : MonoBehaviour
             if (isOutlineActive)
             {
                 SetOutline(false);
+                OnRangeExit?.Invoke();
             }
         }
     }
     
     public virtual void Interact()
     {
-        OnInteract?.Invoke();   
+        OnInteract?.Invoke();
+
+        try
+        {
+        }catch (System.Exception e)
+        {
+            Debug.LogError($"Error invoking OnInteract for {gameObject.name}: {e}");
+        }
+
+        if( destroyOnInteract)
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void SetOutline(bool active)

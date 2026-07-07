@@ -23,7 +23,9 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
     public float recoilStrengthVertical = 1f;    // drives upward/angular kick (the arc/climb)
     public float recoilStrengthHorizontal = 1f;  // drives outward kickback (away from player, along aim line)
     public float recoilRecovery = 1f;            // still shared — how fast both settle back down// scales how fast kickback/rotation/spread settle back down
-    
+
+
+    public Stats baseStats ;
     
     public float reloadDuration = 2f;
     
@@ -40,7 +42,8 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
             durability =  RandomDurability(),
             ammoSlot= new InventorySlot
             {
-                maxStackSize = MagSize
+                maxStackSize = MagSize,
+                myItem = null,
             },
             myItemData= itemData
         };

@@ -17,10 +17,10 @@ MonoBehaviour:
   maxDurability: 700
   MagSize: 7
   baseDamage: 25
-  baseFireRate: 300
+  baseFireRate: 350
   fireMode: 0
   baseSpreadDegrees: 1
-  maxSpreadDegrees: 18
+  maxSpreadDegrees: 17
   spreadPerShot: 3
   spraySpreadBonusPerShot: 0.5
   spreadRecoverySpeed: 3
@@ -33,3 +33,6 @@ MonoBehaviour:
     sizeX: 2
     sizeY: 2
   CompatibleAmmo: d8672633
+  references:
+    version: 2
+    RefIds: []

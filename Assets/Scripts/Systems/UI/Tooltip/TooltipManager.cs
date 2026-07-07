@@ -23,6 +23,8 @@ namespace UI
         [Tooltip("Plain prefab: RectTransform + TMP_Text, nothing else.")]
         [SerializeField] private TMP_Text bodyComponentPrefab;
 
+        [SerializeField] private InventorySlotUI slotComponentPrefab;
+
         [SerializeField] private CanvasGroup TTCG;
         [SerializeField] private CanvasGroup tooltipCG;
 
@@ -42,6 +44,11 @@ namespace UI
         private GameObject tooltipCaller;
         private Coroutine fadeRoutine;
         private bool TTmouseOver;
+
+
+        // New stuff: follow mouse
+        public bool FollowMouse=true;
+
 
         private void Awake()
         {
@@ -67,7 +74,21 @@ namespace UI
             if (tooltipCaller != null)
             {
                 hadGO = true;
+
+                //lets assume being in here means we do have a currently open tooltip
+
+                if (FollowMouse)
+                {
+                    OnShow(Input.mousePosition, true, useWorldSpace: false, edgeDetect: true);
+                }
+
             }
+        }
+        
+        private void ClearTooltip()
+        {
+            ClearComponents();
+
         }
 
         private void OnShow(Vector2 position, bool useOffset, bool useWorldSpace = false,
@@ -146,8 +167,7 @@ namespace UI
             // Debug.Log("showing tooltip. hit edge: " + hitsEdge);
 
             rt.anchoredPosition = canvasPos;
-
-            ClearComponents();
+            rt.anchoredPosition = new Vector2( Mathf.RoundToInt(rt.anchoredPosition.x), Mathf.RoundToInt(rt.anchoredPosition.y));
         }
 
         /// <summary>
@@ -204,6 +224,8 @@ namespace UI
             tooltipCaller = caller;
             title.text = tooltip.name;
 
+
+            ClearTooltip();
             OnShow(position, useOffset, useWorldSpace);
 
             AddImageComponent(tooltip.icon);
@@ -286,7 +308,9 @@ namespace UI
         {
 
             tooltipCaller = caller;
-            title.text = item.GetName(); 
+            title.text = item.GetName();
+
+            ClearTooltip();
 
             OnShow(position, useOffset, useWorldSpace);
 
@@ -298,12 +322,17 @@ namespace UI
                 
                 AddBodyComponent($"Durability: {item.GetComponent<DurabilityItemComponent>().durability}/{item.GetComponent<DurabilityItemComponent>().maxDurability}");
             }
-            
-            if( item.HasComponent<EquipmentItemComponent>())
+
+            if (item.HasComponent<EquipmentItemComponent>())
             {
                 string stats = item.GetComponent<EquipmentItemComponent>().GetDefinition<EquipmentComponentDefinition>().stats.ToString();
-                
+
                 AddBodyComponent($"Stats: \n<color=green>{stats}</color>\nType: {item.GetComponent<EquipmentItemComponent>().GetDefinition<EquipmentComponentDefinition>().equipmentType}");
+            }
+            if(item.HasComponent<GunItemComponent>())
+            {
+                InventorySlotUI ammoSlotComp = Instantiate(slotComponentPrefab, componentContainer);
+                ammoSlotComp.BindSlot(item.GetComponent<GunItemComponent>().ammoSlot);
             }
             
             //description last:
@@ -319,7 +348,7 @@ namespace UI
 
         public void Hide()
         {
-            // tooltipCaller = null;
+             tooltipCaller = null;
             StartFade(tooltipCG.alpha, 0f, easeOut);
 
         }

@@ -180,9 +180,9 @@ public class Drone : MonoBehaviour
         
         if (logThrottle)
         {
-            Debug.Log($"Alt Err: {altitudeError:F2}m, Rot Err: {rotationError:F2}°, Horiz Err: {horizontalError:F2}m, " +
-                      $"Desired Tilt: {desiredTilt:F1}°, Current Rot: {currentRotation:F1}°, " +
-                      $"Throttle A: {thrusterAThrottle:F2}, B: {thrusterBThrottle:F2}");
+           // Debug.Log($"Alt Err: {altitudeError:F2}m, Rot Err: {rotationError:F2}°, Horiz Err: {horizontalError:F2}m, " +
+            //          $"Desired Tilt: {desiredTilt:F1}°, Current Rot: {currentRotation:F1}°, " +
+             //         $"Throttle A: {thrusterAThrottle:F2}, B: {thrusterBThrottle:F2}");
         }
     }
     
