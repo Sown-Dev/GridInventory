@@ -13,10 +13,7 @@ public class Interactable : MonoBehaviour
     private bool isOutlineActive = false;
     private Material mat;
 
-    public Interactable(UnityEvent onInteract)
-    {
-        OnInteract = onInteract;
-    }
+   
 
     public virtual void Start()
     {
