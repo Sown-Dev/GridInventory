@@ -11,12 +11,7 @@ public class WeaponSlot: InventorySlot
         
     public override bool canInsert(ItemData item)
     {
-        if (!IsEmpty())
-        {
-            return false;
-        }
-
-        if (item == null || item.amount <= 0)
+        if (myItem != null)
         {
             return false;
         }
@@ -31,7 +26,7 @@ public class WeaponSlot: InventorySlot
 
     public override bool CanInsertIfEmpty(ItemData item)
     {
-        return IsEmpty() && item != null && item.amount > 0 && item.HasComponent<GunItemComponent>();
+        return item != null && item.HasComponent<GunItemComponent>();
     }
 
     

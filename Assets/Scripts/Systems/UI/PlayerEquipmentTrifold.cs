@@ -1,7 +1,5 @@
 ﻿using System;
 
-namespace DefaultNamespace.Systems.UI
-{
     public class PlayerEquipmentTrifold: UITrifold
     {
         public EquipmentSlotUI slotPrefab;
@@ -30,4 +28,3 @@ namespace DefaultNamespace.Systems.UI
             }
         }
     }
-}

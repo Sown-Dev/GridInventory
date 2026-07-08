@@ -46,7 +46,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     protected virtual void Update()
     {
-        if (updateConstantly && overrideRotation && !slot.IsEmpty())
+        if (updateConstantly && overrideRotation && slot.myItem != null)
         {
             ApplyRotationOverride(slot.myItem);
         }
@@ -89,7 +89,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool CanAcceptItem(ItemData item, Vector2 screenPosition)
     {
-        return ContainsScreenPoint(screenPosition) && item != null && item.amount > 0 && (slot.canInsert(item) || CanLoadAmmoIntoWeapon(item) || CanSwapItem(item));
+        return ContainsScreenPoint(screenPosition) && (slot.canInsert(item) || CanLoadAmmoIntoWeapon(item) || CanSwapItem(item));
     }
 
     public virtual void UpdateDropPreview(ItemData item, Vector2 screenPosition, bool valid)
@@ -124,7 +124,8 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool TryPlaceItem(ItemData item, Vector2 screenPosition)
     {
-        if (!ContainsScreenPoint(screenPosition) || item == null || item.amount <= 0)
+       
+        if (!ContainsScreenPoint(screenPosition))
         {
             return false;
         }
@@ -151,7 +152,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool TrySwapItem(ItemData item, IItemContainerUI sourceContainer)
     {
-        if (item == null || item.amount <= 0 || slot.IsEmpty() || CanLoadAmmoIntoWeapon(item) || !CanSwapItem(item))
+        if (item == null || slot.myItem == null || CanLoadAmmoIntoWeapon(item) || !CanSwapItem(item))
         {
             return false;
         }
@@ -187,7 +188,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     public virtual bool TryRestoreItem(ItemData item)
     {
-        if (item == null || item.amount <= 0 || !slot.IsEmpty() || !slot.canInsert(item))
+        if (slot.myItem != null || !slot.canInsert(item))
         {
             return false;
         }
@@ -209,9 +210,8 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
             currentItemUI = null;
         }
 
-        bool slotEmpty = slot.IsEmpty();
 
-        if (slotEmpty || itemUIPrefab == null || itemRoot == null || slot.myItem == null || slot.myItem.itemID == 0) 
+        if (slot.myItem == null || itemUIPrefab == null || itemRoot == null || slot.myItem.itemID == 0) 
         {
             ClearDropPreview();
             return;
@@ -242,7 +242,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     private bool CanLoadAmmoIntoWeapon(ItemData item)
     {
-        if (item == null || item.amount <= 0 || slot.IsEmpty() || !slot.myItem.HasComponent<GunItemComponent>())
+        if (item == null || slot.myItem == null || !slot.myItem.HasComponent<GunItemComponent>())
         {
             return false;
         }
@@ -253,7 +253,7 @@ public class InventorySlotUI : MonoBehaviour, IItemContainerUI
 
     protected virtual bool CanSwapItem(ItemData item)
     {
-        return item != null && item.amount > 0 && !slot.IsEmpty() && slot.CanInsertIfEmpty(item) && !CanLoadAmmoIntoWeapon(item);
+        return item != null && slot.myItem != null && slot.CanInsertIfEmpty(item) && !CanLoadAmmoIntoWeapon(item);
     }
 
     private void ApplyRotationOverride(ItemData item)

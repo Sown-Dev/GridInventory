@@ -20,7 +20,9 @@ public enum Statstype{
     //Combat
     
     Damage = 21,
-    AttackSpeed = 22,
+    FireRate = 22,
+    MagSize = 23,
+    ReloadSpeed = 24,
 }
 
 [Serializable]

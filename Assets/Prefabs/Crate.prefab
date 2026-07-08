@@ -181,7 +181,7 @@ MonoBehaviour:
   <faction>k__BackingField: 1
   <defense>k__BackingField: 0
   spriteRenderer: {fileID: 2624889518393443310}
-  flashRecoverySpeed: 30
+  flashRecoverySpeed: 20
 --- !u!114 &6967916421032778713
 MonoBehaviour:
   m_ObjectHideFlags: 0

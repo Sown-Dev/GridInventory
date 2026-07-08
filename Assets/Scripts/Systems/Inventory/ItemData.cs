@@ -19,8 +19,6 @@ public class ItemData
     public int itemID;
     public double value;
 
-    public bool HasPositiveAmount => amount > 0;
-
     [SerializeReference]
     public ItemComponent[] Components;
 

@@ -2,6 +2,11 @@
 
 //Ammo component:
 //Defines bullet properties. Common changes will be damage, velocity, recoil. , 
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "Knife", menuName = "Inventory/Ammo Component")]
+
     public class AmmoComponentDefinition: ComponentDefinition
     {
         public Caliber myCaliber;

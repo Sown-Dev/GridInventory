@@ -317,6 +317,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   RectTransform: {fileID: 7599351055724632159}
+  myCanvasGroup: {fileID: 0}
+  KillToggle: 1
+  StartOpen: 1
   gridInventory: {fileID: 5846017766012451269}
 --- !u!1 &6410265844845450431
 GameObject:

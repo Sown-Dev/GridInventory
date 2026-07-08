@@ -19,53 +19,17 @@ using Unity.VisualScripting;
         public Action OnChanged;
 
         public int maxStackSize = -1;
-
-        public bool IsItemValid(ItemData item)
-        {
-            return item != null && item.amount > 0;
-        }
-
-        public void Clear()
-        {
-            if (myItem == null)
-            {
-                return;
-            }
-
-            myItem = null;
-            OnChanged?.Invoke();
-        }
-
-        public bool ConsumeStack(int amount)
-        {
-            if (myItem == null || amount <= 0)
-            {
-                return false;
-            }
-
-            myItem.amount -= amount;
-            if (myItem.amount <= 0)
-            {
-                Clear();
-            }
-            else
-            {
-                OnChanged?.Invoke();
-            }
-
-            return true;
-        }
         
         
         
         public virtual bool canInsert(ItemData item)
         {
-            return IsEmpty() && IsItemValid(item);
+            return myItem == null;
         }
 
         public virtual bool CanInsertIfEmpty(ItemData item)
         {
-            return IsEmpty() && IsItemValid(item);
+            return item != null;
         }
         
         public virtual bool Insert(ItemData item)
@@ -114,12 +78,7 @@ using Unity.VisualScripting;
         
         public override bool canInsert(ItemData item)
         {
-            if (!IsEmpty())
-            {
-                return false;
-            }
-
-            if (item == null || item.amount <= 0)
+            if (myItem != null)
             {
                 return false;
             }
@@ -135,7 +94,7 @@ using Unity.VisualScripting;
 
         public override bool CanInsertIfEmpty(ItemData item)
         {
-            if (!IsEmpty() || item == null || item.amount <= 0)
+            if (item == null)
             {
                 return false;
             }

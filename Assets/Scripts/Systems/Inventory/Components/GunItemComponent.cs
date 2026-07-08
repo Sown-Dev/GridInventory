@@ -31,10 +31,14 @@ public class GunItemComponent : DurabilityItemComponent
     {
         if (ammoSlot.IsEmpty())
             return false;
+        
+        if(ammoSlot.myItem.amount <= 0)
+            return false;
 
         if (!simulate)
         {
-            ammoSlot.ConsumeStack(1);
+            ammoSlot.myItem.amount--;
+            ammoSlot.OnChanged?.Invoke();
             myItemData.OnChanged?.Invoke();
         }
         return true;

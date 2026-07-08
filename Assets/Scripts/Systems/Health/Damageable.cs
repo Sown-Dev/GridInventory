@@ -15,7 +15,7 @@ public class Damageable : MonoBehaviour, IDamageable
     
     [Header("Flash Settings")]
     public SpriteRenderer spriteRenderer;
-    public float flashRecoverySpeed = 5f; // Higher number means faster fade
+    public float flashRecoverySpeed = 25f; // Higher number means faster fade
 
     private float currentFlashAmount;
     private MaterialPropertyBlock propertyBlock;

@@ -17,7 +17,6 @@ public class InventoryComponent : MonoBehaviour
             {
                 string json = PlayerPrefs.GetString(GetUniqueID());
                 inventory = JsonUtility.FromJson<Inventory>(json);
-                inventory?.RemoveEmptyStacks();
             }
             else
             {
@@ -52,13 +51,13 @@ public class InventoryComponent : MonoBehaviour
     }
     public void CloseInventoryUI()
     {
-        UIManager.instance.CloseInventoryUITrifold();
+        UIManager.instance.CloseAllTrifolds();
         opened = false;
     }
 
     public void Save()
     {
-        inventory?.RemoveEmptyStacks();
+     
             string json = JsonUtility.ToJson(inventory);
             PlayerPrefs.SetString(GetUniqueID(), json);
             PlayerPrefs.Save();

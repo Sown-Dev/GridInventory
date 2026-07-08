@@ -18,6 +18,24 @@ MonoBehaviour:
   MagSize: 5
   baseDamage: 24
   baseFireRate: 250
+  baseStats:
+    stats:
+    - type: 21
+      amount: 24
+      operation: 2
+      hidden: 0
+    - type: 22
+      amount: 4.166666666666667
+      operation: 2
+      hidden: 0
+    - type: 23
+      amount: 5
+      operation: 2
+      hidden: 0
+    - type: 24
+      amount: 1.5
+      operation: 2
+      hidden: 0
   fireMode: 0
   baseSpreadDegrees: 2
   maxSpreadDegrees: 20

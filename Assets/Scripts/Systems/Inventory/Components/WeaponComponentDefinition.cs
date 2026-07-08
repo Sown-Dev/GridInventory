@@ -14,6 +14,9 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
     public float baseFireRate = 300;
     
     
+    [SerializeField]
+    public Stats baseStats ;
+
     public WeaponFireMode fireMode = WeaponFireMode.Semi;
     public float baseSpreadDegrees = 20f;            // hard cap on total spread cone
     public float maxSpreadDegrees = 20f;   // ceiling spread can build up to under sustained fire
@@ -23,10 +26,6 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
     public float recoilStrengthVertical = 1f;    // drives upward/angular kick (the arc/climb)
     public float recoilStrengthHorizontal = 1f;  // drives outward kickback (away from player, along aim line)
     public float recoilRecovery = 1f;            // still shared — how fast both settle back down// scales how fast kickback/rotation/spread settle back down
-
-
-    public Stats baseStats ;
-    
     public float reloadDuration = 2f;
     
     public Inventory Upgrades;
@@ -47,6 +46,20 @@ public class WeaponComponentDefinition : DurabilityComponentDefinition
             },
             myItemData= itemData
         };
+    }
+
+    [ContextMenu("Generate Stats")]
+    public void GenerateStats()
+    {
+        baseStats = new Stats();
+        baseStats.stats.Add(new Statistic(Statstype.Damage, (Double)baseDamage, Stats.StatsOperation.Add)); 
+        baseStats.stats.Add(new Statistic(Statstype.FireRate, (Double)baseFireRate/60, Stats.StatsOperation.Add));
+        baseStats.stats.Add(new Statistic(Statstype.MagSize, (Double)MagSize, Stats.StatsOperation.Add));
+        baseStats.stats.Add(new Statistic(Statstype.ReloadSpeed, (Double)reloadDuration, Stats.StatsOperation.Add));
+    }
+    void OnValidate()
+    {
+        GenerateStats();
     }
 }
 

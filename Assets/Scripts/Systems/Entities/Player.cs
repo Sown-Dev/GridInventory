@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using DefaultNamespace.Systems.UI;
 using Unity.Properties;
 using Unity.Serialization.Json;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public enum WeaponFireMode
 {
@@ -43,8 +43,8 @@ public class Player : StatsUnit
     public Inventory Inventory;
 
     public PlayerEquipmentTrifold equipmentUI;
-    public PlayerInventoryUI playerInventoryUI;
-    
+    [FormerlySerializedAs("playerInventoryUI")] public PlayerInventoryTrifold playerInventoryTrifold;
+
     int accessorySlotCount = 2;
 
     public EquipmentSlot HelmetSlot = new EquipmentSlot(EquipmentType.Helmet);
@@ -233,9 +233,9 @@ public class Player : StatsUnit
 
         ApplyLoadedData(data);
         loadedFromSave = true;
-        
+
         equipmentUI?.Initialize();
-        
+
     }
 
     private void ApplyLoadedData(PlayerSaveData data)
@@ -243,7 +243,7 @@ public class Player : StatsUnit
         transform.position = new Vector3(data.posX, data.posY, data.posZ);
 
         Inventory = data.inventory ?? new Inventory();
-        Inventory.RemoveEmptyStacks();
+        //Inventory.RemoveEmptyStacks();
 
         HelmetSlot.myItem = data.helmetItem;
         ChestSlot.myItem = data.chestItem;
@@ -275,7 +275,7 @@ public class Player : StatsUnit
 
     public void SaveGame()
     {
-        Inventory?.RemoveEmptyStacks();
+       // Inventory?.RemoveEmptyStacks();
         NormalizeEquipmentSlots();
 
         int equippedIndex = 0;
@@ -364,10 +364,13 @@ public class Player : StatsUnit
     public override void CalculateStats()
     {
         base.CalculateStats();
-
+        if (EquippedSlot is WeaponSlot && !EquippedSlot.IsEmpty())
+        {
+            //finalStats.Combine(EquippedSlot.myItem.GetComponent<GunItemComponent>().GetDefinition<WeaponComponentDefinition>().baseStats);
+        }
         finalStats.Combine(HelmetSlot.GetDefinition()?.stats);
         finalStats.Combine(ChestSlot.GetDefinition()?.stats);
-        finalStats.Combine(WeaponSlot1.GetDefinition()?.stats);
+       
         ApplyStats();
     }
 
@@ -381,9 +384,9 @@ public class Player : StatsUnit
     public float laserMaxDistance = 50f;
     public bool laserSightEnabled = true;
     [SerializeField] private KeyCode laserToggleKey = KeyCode.L;
-    
-    
-    
+
+
+
     public InventorySlot EquippedSlot;
 
     public GameObject projectilePrefab;
@@ -666,13 +669,13 @@ public class Player : StatsUnit
         if (gunSpriteRenderer != null)
         {
             float gunScale = 0.33f;
-            gunSpriteRenderer.transform.localScale = new Vector3(-gunScale, facingLeft? -gunScale: gunScale, gunScale);
+            gunSpriteRenderer.transform.localScale = new Vector3(-gunScale, facingLeft ? -gunScale : gunScale, gunScale);
         }
         if (spriteRenderer != null)
         {
             spriteRenderer.transform.localScale = new Vector3(facingLeft ? -1f : 1f, 1f, 1f);
         }
-        
+
         float recoilSign = facingLeft ? -1f : 1f;
         currentSignedRecoilRotation = currentRecoilRotation * recoilSign;
 
@@ -737,7 +740,7 @@ public class Player : StatsUnit
 
         gunComponent.UseAmmo(false);
         EquippedSlot.OnChanged.Invoke();
-        
+
         gunComponent.myItemData.InvokeOnChanged();
 
         SetAmmoVisualizer();
@@ -790,14 +793,14 @@ public class Player : StatsUnit
         InitializeInventorySetup();
         PopulateInventoryWithTestItems();
     }
-    
+
     [ContextMenu("Clear Inventory")]
     private void ClearInventory()
     {
         Inventory.inv = new List<ItemData>();
     }
 
-    [ContextMenu("Initialize Inventory Setup")] 
+    [ContextMenu("Initialize Inventory Setup")]
     private void InitializeInventorySetup()
     {
         Inventory ??= new Inventory();
@@ -844,8 +847,8 @@ public class Player : StatsUnit
         Inventory.sizeX = widthLimit;
         Inventory.sizeY = requiredHeight;
     }
-    
-    
+
+
 
     [ContextMenu("Populate Inventory With Test Items")]
     private void PopulateInventoryWithTestItems()

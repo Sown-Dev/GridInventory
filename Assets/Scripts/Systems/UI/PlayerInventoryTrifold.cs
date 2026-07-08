@@ -1,22 +1,18 @@
 using UnityEngine;
 
-public class PlayerInventoryUI : MonoBehaviour
+public class PlayerInventoryTrifold : UITrifold
 {
     [SerializeField] private Player player;
     [SerializeField] private GridInventoryUI gridInventoryUI;
     [SerializeField] private GameObject inventoryPanel;
-    [SerializeField] private CanvasGroup wholeUiCanvasGroup;
+    //[SerializeField] private CanvasGroup wholeUiCanvasGroup;
 
     private Inventory boundInventory;
 
     private void Awake()
     {
-        if (wholeUiCanvasGroup == null)
-        {
-            wholeUiCanvasGroup = GetComponentInParent<CanvasGroup>(true);
-        }
-
-        SetInventoryVisible(false);
+        
+       // SetInventoryVisible(false);
     }
 
     private void Start()
@@ -24,15 +20,7 @@ public class PlayerInventoryUI : MonoBehaviour
         BindInventory();
     }
 
-    private void Update()
-    {
-        //BindInventory();
-
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            ToggleInventory();
-        }
-    }
+  
 
     private void BindInventory()
     {
@@ -89,7 +77,7 @@ public class PlayerInventoryUI : MonoBehaviour
         rectTransform.pivot = new Vector2(anchorMin.x, anchorMin.y);
     }
 
-    private void ToggleInventory()
+    /*private void ToggleInventory()
     {
         if (wholeUiCanvasGroup == null)
         {
@@ -109,5 +97,5 @@ public class PlayerInventoryUI : MonoBehaviour
         wholeUiCanvasGroup.alpha = visible ? 1f : 0f;
         wholeUiCanvasGroup.interactable = visible;
         wholeUiCanvasGroup.blocksRaycasts = visible;
-    }
+    }*/
 }

@@ -1,5 +1,4 @@
 ﻿
-    using DefaultNamespace;
     using UnityEngine;
 
     public class Unit: Damageable
