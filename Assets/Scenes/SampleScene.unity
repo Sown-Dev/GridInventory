@@ -835,11 +835,11 @@ RectTransform:
   - {fileID: 114663247}
   m_Father: {fileID: 1766561718}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: -160, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 320, y: 540}
-  m_Pivot: {x: 0, y: 0.5}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &222769361
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2460,7 +2460,7 @@ MonoBehaviour:
   slotComponentPrefab: {fileID: 529536644989729547, guid: 4ef9ad08c05f7b54d87da2493b0dc0fe, type: 3}
   TTCG: {fileID: 234602656}
   tooltipCG: {fileID: 234602656}
-  offset: {x: 0, y: -64}
+  offset: {x: 16, y: -16}
   width: 128
   easeIn:
     serializedVersion: 2
@@ -2610,8 +2610,8 @@ RectTransform:
   - {fileID: 310224045}
   - {fileID: 2001606978}
   - {fileID: 1629419259}
-  - {fileID: 792155544}
   - {fileID: 1766561718}
+  - {fileID: 792155544}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -3649,21 +3649,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridInventoryPrefab: {fileID: 8720542945867656204, guid: 815b0b9f43ad0004ca2f5f19168a8550, type: 3}
-  trifoldInventoryPrefab: {fileID: 4926702497461926750, guid: cc4ccfb635805d5429dc4eb207d76d2b, type: 3}
+  trifoldInventoryPrefab: {fileID: 4338652933872009893, guid: e2e4910b89a0a444b8df6928edb973eb, type: 3}
   trifoldParent: {fileID: 1766561718}
   tri1: {fileID: 0}
   tri2: {fileID: 0}
   tri3: {fileID: 0}
   playerInventoryTrifold: {fileID: 8281681329852966605}
   playerEquipmentTrifold: {fileID: 222769361}
---- !u!4 &1766561718
-Transform:
+--- !u!224 &1766561718
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1766561716}
-  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -3673,6 +3672,11 @@ Transform:
   - {fileID: 1059991801}
   m_Father: {fileID: 797794337}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1907135175
 GameObject:
   m_ObjectHideFlags: 0
@@ -4803,7 +4807,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6913514144735654849, guid: 9ecdf48edff9069459c617d4e64a0dd2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -480
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6913514144735654849, guid: 9ecdf48edff9069459c617d4e64a0dd2, type: 3}
       propertyPath: m_AnchoredPosition.y
